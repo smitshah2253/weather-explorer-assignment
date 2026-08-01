@@ -7,7 +7,14 @@ from app.core.logging import setup_logging
 from app.api.router import api_router
 from app.middleware.request_id_middleware import RequestIDMiddleware
 from app.middleware.logging_middleware import LoggingMiddleware
-from app.exceptions.handlers import global_exception_handler
+from app.exceptions.handlers import (
+    global_exception_handler,
+    validation_exception_handler,
+    weather_not_found_handler,
+    weather_service_error_handler
+)
+from fastapi.exceptions import RequestValidationError
+from app.exceptions.service_exceptions import WeatherServiceError, WeatherServiceNotFoundError
 
 def create_app() -> FastAPI:
     """
@@ -45,7 +52,9 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestIDMiddleware)
 
     # 4. Add Exception Handlers
-    # Catch all unhandled exceptions globally to prevent 500 stack traces leaking.
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(WeatherServiceNotFoundError, weather_not_found_handler)
+    app.add_exception_handler(WeatherServiceError, weather_service_error_handler)
     app.add_exception_handler(Exception, global_exception_handler)
 
     # 5. Include API Router
