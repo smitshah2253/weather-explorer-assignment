@@ -76,3 +76,6 @@ coverage.xml
 
 # Ruff
 .ruff_cache/
+
+# Developer Notes
+ai_design_notes.md

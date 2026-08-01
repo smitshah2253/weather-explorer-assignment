@@ -1,26 +1,57 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from loguru import logger
+from fastapi.responses import ORJSONResponse
+
 from app.core.config import settings
+from app.core.logging import setup_logging
+from app.api.router import api_router
+from app.middleware.request_id_middleware import RequestIDMiddleware
+from app.middleware.logging_middleware import LoggingMiddleware
+from app.exceptions.handlers import global_exception_handler
 
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
-)
+def create_app() -> FastAPI:
+    """
+    Application factory.
+    Facilitates testing by allowing customized app instances.
+    """
+    
+    # 1. Initialize Logger
+    setup_logging()
 
-# Configure CORS for local development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    # 2. Initialize FastAPI with ORJSONResponse for better serialization performance
+    app = FastAPI(
+        title=settings.PROJECT_NAME,
+        openapi_url=f"{settings.API_V1_STR}/openapi.json",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        default_response_class=ORJSONResponse,
+    )
 
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"Starting {settings.PROJECT_NAME} in {settings.ENVIRONMENT} mode.")
+    # 3. Add Middlewares (Order matters: outer to inner)
+    
+    # CORS Middleware must be the outermost to ensure pre-flight requests 
+    # are handled properly even if the request is rejected later.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.BACKEND_CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    # Add logging and request ID middlewares.
+    # RequestID goes first so the Logging middleware has access to the ID.
+    app.add_middleware(LoggingMiddleware)
+    app.add_middleware(RequestIDMiddleware)
 
-@app.get("/health")
-def health_check():
-    return {"status": "healthy", "environment": settings.ENVIRONMENT}
+    # 4. Add Exception Handlers
+    # Catch all unhandled exceptions globally to prevent 500 stack traces leaking.
+    app.add_exception_handler(Exception, global_exception_handler)
+
+    # 5. Include API Router
+    app.include_router(api_router, prefix=settings.API_V1_STR)
+
+    return app
+
+# The main application instance run by Uvicorn
+app = create_app()
