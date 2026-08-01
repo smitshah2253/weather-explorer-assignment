@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
 
+    # Integration URLs
+    OPEN_METEO_BASE_URL: str = "https://archive-api.open-meteo.com/v1/archive"
+
     class Config:
         env_file = ".env"
         case_sensitive = True
