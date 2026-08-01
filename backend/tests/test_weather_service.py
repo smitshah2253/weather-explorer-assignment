@@ -42,8 +42,8 @@ async def test_store_weather_data_success(weather_service, valid_request, mock_w
     mock_weather_client.fetch_historical_weather.assert_called_once_with(
         latitude=52.52,
         longitude=13.41,
-        start_date=date(2024, 1, 1),
-        end_date=date(2024, 1, 7)
+        start_date="2024-01-01",
+        end_date="2024-01-07"
     )
     mock_storage_client.upload_json.assert_called_once_with(result.file, {"mock": "data"})
 

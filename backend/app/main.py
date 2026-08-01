@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import ORJSONResponse
 
 from app.core.config import settings
 from app.core.logging import setup_logging
@@ -25,13 +24,12 @@ def create_app() -> FastAPI:
     # 1. Initialize Logger
     setup_logging()
 
-    # 2. Initialize FastAPI with ORJSONResponse for better serialization performance
+    # 2. Initialize FastAPI
     app = FastAPI(
         title=settings.PROJECT_NAME,
         openapi_url=f"{settings.API_V1_STR}/openapi.json",
         docs_url="/docs",
         redoc_url="/redoc",
-        default_response_class=ORJSONResponse,
     )
 
     # 3. Add Middlewares (Order matters: outer to inner)
@@ -52,9 +50,9 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestIDMiddleware)
 
     # 4. Add Exception Handlers
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)
-    app.add_exception_handler(WeatherServiceNotFoundError, weather_not_found_handler)
-    app.add_exception_handler(WeatherServiceError, weather_service_error_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler) # type: ignore
+    app.add_exception_handler(WeatherServiceNotFoundError, weather_not_found_handler) # type: ignore
+    app.add_exception_handler(WeatherServiceError, weather_service_error_handler) # type: ignore
     app.add_exception_handler(Exception, global_exception_handler)
 
     # 5. Include API Router

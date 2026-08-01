@@ -1,5 +1,5 @@
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any, List, cast
 import httpx
 from loguru import logger
 import orjson
@@ -20,7 +20,7 @@ class WeatherClient:
     Client for interacting with the Open-Meteo Historical Weather API.
     """
     
-    def __init__(self):
+    def __init__(self) -> None:
         # Set explicit limits to prevent hanging connections
         limits = httpx.Limits(max_keepalive_connections=50, max_connections=100)
         timeout = httpx.Timeout(DEFAULT_HTTP_TIMEOUT, connect=5.0)
@@ -43,7 +43,7 @@ class WeatherClient:
         longitude: float, 
         start_date: str, 
         end_date: str, 
-        daily_variables: List[str] = None
+        daily_variables: List[str] | None = None
     ) -> Dict[str, Any]:
         """
         Fetches historical weather data from Open-Meteo.
@@ -78,6 +78,7 @@ class WeatherClient:
         logger.info(f"Initiating Open-Meteo request for coords: ({latitude}, {longitude}) from {start_date} to {end_date}")
         start_time = time.perf_counter()
         
+        response = None
         try:
             response = await self._execute_request(params)
             
@@ -87,7 +88,7 @@ class WeatherClient:
             process_time = time.perf_counter() - start_time
             logger.info(f"Open-Meteo request completed successfully in {process_time:.4f}s")
             
-            return data
+            return cast(Dict[str, Any], data)
                 
         except httpx.TimeoutException as e:
             logger.error(f"Open-Meteo request timed out: {e}")
@@ -110,7 +111,7 @@ class WeatherClient:
             raise WeatherResponseException(
                 message="Failed to parse JSON response from Open-Meteo",
                 status_code=200,
-                response_text=response.text
+                response_text=response.text if response else None
             ) from e
             
         except Exception as e:

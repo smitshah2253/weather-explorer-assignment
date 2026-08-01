@@ -8,7 +8,7 @@ from app.schemas.weather import (
 )
 from app.services.weather_service import WeatherService
 from app.api.dependencies import get_weather_service
-from app.core.logging import logger
+from loguru import logger
 
 router = APIRouter(tags=["Weather"])
 

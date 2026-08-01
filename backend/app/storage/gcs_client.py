@@ -1,10 +1,11 @@
 """
 Google Cloud Storage client module.
 """
-from typing import Any
+from typing import Any, cast
+import datetime
 import orjson
 from loguru import logger
-from google.cloud import storage
+from google.cloud import storage # type: ignore
 from google.cloud.exceptions import NotFound, GoogleCloudError
 from pathlib import Path
 
@@ -18,7 +19,7 @@ class GoogleCloudStorageClient:
     Reuses a single google.cloud.storage.Client instance.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         try:
             project = settings.GCP_PROJECT_ID
             if project:
@@ -32,7 +33,7 @@ class GoogleCloudStorageClient:
             logger.error(f"Failed to initialize GCS client: {e}")
             raise StorageError(f"Failed to initialize GCS client: {e}") from e
 
-    def upload_json(self, filename: str, data: dict) -> str:
+    def upload_json(self, filename: str, data: dict[str, Any]) -> str:
         """
         Serializes dictionary to JSON and uploads it to GCS.
         Overwrites if the file already exists.
@@ -59,7 +60,7 @@ class GoogleCloudStorageClient:
             logger.error(f"errors during upload of {filename}: {e}")
             raise StorageUploadError(f"Failed to upload {filename} to GCS.") from e
 
-    def download_json(self, filename: str) -> dict:
+    def download_json(self, filename: str) -> dict[str, Any]:
         """
         Downloads a JSON file from GCS and deserializes it.
         
@@ -79,7 +80,7 @@ class GoogleCloudStorageClient:
             content = blob.download_as_bytes()
             data = orjson.loads(content)
             logger.info(f"download successful: {filename}")
-            return data
+            return cast(dict[str, Any], data)
             
         except NotFound as e:
             logger.warning(f"errors: file not found {filename}")
@@ -109,7 +110,7 @@ class GoogleCloudStorageClient:
                     "created_at": blob.time_created
                 })
                 
-            files.sort(key=lambda x: x["created_at"] or getattr(x["created_at"], "min"), reverse=True)
+            files.sort(key=lambda x: x["created_at"] or datetime.datetime.min.replace(tzinfo=datetime.timezone.utc), reverse=True)
             return files
             
         except Exception as e:
@@ -128,7 +129,7 @@ class GoogleCloudStorageClient:
         """
         try:
             blob = self.bucket.blob(filename)
-            return blob.exists()
+            return bool(blob.exists())
         except Exception as e:
             logger.error(f"errors checking existence of {filename}: {e}")
             raise StorageError(f"Failed to check existence of {filename}.") from e

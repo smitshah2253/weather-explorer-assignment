@@ -18,7 +18,7 @@ class WeatherResponseException(WeatherAPIException):
     Raised when the weather API returns an unexpected or erroneous response.
     Includes the status code and raw response text if available.
     """
-    def __init__(self, message: str, status_code: int = None, response_text: str = None):
+    def __init__(self, message: str, status_code: int | None = None, response_text: str | None = None):
         super().__init__(message)
         self.status_code = status_code
         self.response_text = response_text

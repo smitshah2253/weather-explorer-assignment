@@ -4,16 +4,16 @@ from typing import Callable, Any
 from loguru import logger
 import httpx
 
-def with_retry(max_retries: int = 3, initial_backoff: float = 1.0):
+def with_retry(max_retries: int = 3, initial_backoff: float = 1.0) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Async decorator that retries function on specific HTTP failures (5xx, timeouts)."""
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        async def wrapper(*args, **kwargs) -> Any:
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             attempt = 1
             backoff = initial_backoff
             
             while attempt <= max_retries:
-                last_exception = None
+                last_exception: Exception | None = None
                 try:
                     return await func(*args, **kwargs)
                     
@@ -37,7 +37,9 @@ def with_retry(max_retries: int = 3, initial_backoff: float = 1.0):
                 # Raise last exception if max retries reached
                 if attempt == max_retries:
                     logger.error(f"Max retries ({max_retries}) reached for {func.__name__}. Failing.")
-                    raise last_exception
+                    if last_exception:
+                        raise last_exception
+                    raise RuntimeError("Max retries reached without exception")
                 
                 logger.info(f"Sleeping for {backoff} seconds before retrying...")
                 await asyncio.sleep(backoff)

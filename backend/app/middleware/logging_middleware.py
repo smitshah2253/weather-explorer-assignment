@@ -2,6 +2,7 @@ import time
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.middleware.base import RequestResponseEndpoint
 from loguru import logger
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -9,7 +10,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     Logs the start, end, and duration of all HTTP requests.
     Keeps latency monitoring and access logs centralized.
     """
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         request_id = getattr(request.state, "request_id", "unknown")
         
         logger.info(f"[{request_id}] Request started: {request.method} {request.url.path}")

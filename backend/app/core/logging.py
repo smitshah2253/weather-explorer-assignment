@@ -2,7 +2,7 @@ import sys
 from loguru import logger
 from app.core.config import settings
 
-def setup_logging():
+def setup_logging() -> None:
     """
     Configures Loguru as the centralized logging system.
     Replaces standard logging for better async performance and JSON formatting support.
@@ -27,4 +27,4 @@ def setup_logging():
         diagnose=settings.ENVIRONMENT == "development",
     )
     
-    return logger
+

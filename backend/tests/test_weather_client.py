@@ -84,6 +84,7 @@ async def test_fetch_weather_invalid_json(client, mock_params):
             await client.fetch_historical_weather(**mock_params)
 
     assert exc_info.value.status_code == 200
+    assert exc_info.value.response_text is not None
     assert "<html>Not JSON</html>" in exc_info.value.response_text
 
 

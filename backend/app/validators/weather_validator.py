@@ -1,5 +1,5 @@
 from datetime import date
-from pydantic import ValidationError
+
 
 from app.core.constants import (
     MAX_ALLOWED_DAYS,

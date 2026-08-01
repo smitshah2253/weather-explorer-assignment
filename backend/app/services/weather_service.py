@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 
-from app.core.logging import logger
+from loguru import logger
 from app.exceptions.service_exceptions import WeatherServiceError, WeatherServiceNotFoundError
 from app.exceptions.weather_exceptions import WeatherAPIException
 from app.storage.exceptions import StorageError, StorageFileNotFound
@@ -12,8 +12,7 @@ from app.schemas.weather import (
     ListWeatherFilesResponse,
     WeatherFileContentResponse
 )
-from app.models.weather import generate_weather_filename
-
+from app.models.weather import generate_weather_filename, WeatherFileMetadata
 from app.services.weather_client import WeatherClient
 from app.storage.gcs_client import GoogleCloudStorageClient
 
@@ -31,8 +30,8 @@ class WeatherService:
             raw_data = await self._weather_client.fetch_historical_weather(
                 latitude=request.latitude,
                 longitude=request.longitude,
-                start_date=request.start_date,
-                end_date=request.end_date
+                start_date=request.start_date.isoformat(),
+                end_date=request.end_date.isoformat()
             )
             logger.info("Weather fetch successful")
             
@@ -68,7 +67,8 @@ class WeatherService:
             files = await asyncio.to_thread(self._storage_client.list_files)
             if not files:
                 return ListWeatherFilesResponse(files=[])
-            return ListWeatherFilesResponse(files=files)
+            
+            return ListWeatherFilesResponse(files=[WeatherFileMetadata(**f) for f in files])
         except StorageError as e:
             logger.error(f"Storage error during list: {str(e)}")
             raise WeatherServiceError(f"Failed to list weather files: {str(e)}") from e
