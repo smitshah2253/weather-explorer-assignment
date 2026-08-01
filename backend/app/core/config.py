@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     # Integration URLs
     OPEN_METEO_BASE_URL: str = "https://archive-api.open-meteo.com/v1/archive"
 
+    # Google Cloud Storage Configuration
+    GCS_BUCKET_NAME: str = "weather-explorer-data"
+    GCP_PROJECT_ID: str | None = None
+    GOOGLE_APPLICATION_CREDENTIALS: str | None = None
+
     class Config:
         env_file = ".env"
         case_sensitive = True

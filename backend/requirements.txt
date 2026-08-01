@@ -9,6 +9,7 @@ orjson>=3.9.12
 uvicorn[standard]>=0.27.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.5
-respx>=0.21.1
+respx==0.21.1
+google-cloud-storage==2.14.0
 ruff>=0.2.0
 black>=24.1.0
