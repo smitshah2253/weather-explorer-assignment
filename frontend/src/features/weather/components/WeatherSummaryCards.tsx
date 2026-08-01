@@ -6,13 +6,37 @@ import {
   CloudRain,
 } from 'lucide-react'
 import { formatTemperature } from '@/utils/formatters'
+import { Skeleton } from '@/components/ui/Skeleton'
 import type { WeatherFileContent } from '@/types/weather'
 
 interface WeatherSummaryCardsProps {
   weatherData: WeatherFileContent | null
+  isLoading?: boolean
 }
 
-export function WeatherSummaryCards({ weatherData }: WeatherSummaryCardsProps) {
+export function WeatherSummaryCards({ weatherData, isLoading = false }: WeatherSummaryCardsProps) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 w-full font-sans">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-3 shadow-xs"
+          >
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-6 w-6 rounded-md" />
+            </div>
+            <div className="space-y-1.5">
+              <Skeleton className="h-7 w-20" />
+              <Skeleton className="h-3 w-14" />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   if (!weatherData || !weatherData.daily.time.length) {
     return null
   }

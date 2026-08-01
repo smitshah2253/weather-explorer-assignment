@@ -22,8 +22,8 @@ export interface WeatherFileMetadata {
 }
 
 export interface ListWeatherFilesResponse {
-  status: string
-  count: number
+  status?: string
+  count?: number
   files: WeatherFileMetadata[]
 }
 
@@ -37,9 +37,9 @@ export interface DailyWeatherData {
 }
 
 export interface DailyWeatherUnits {
-  time: string
-  temperature_2m_max: string
-  temperature_2m_min: string
+  time?: string
+  temperature_2m_max?: string
+  temperature_2m_min?: string
   precipitation_sum?: string
   wind_speed_10m_max?: string
   weather_code?: string
@@ -58,7 +58,7 @@ export interface WeatherFileContent {
 }
 
 export interface WeatherFileContentResponse {
-  status: string
-  filename: string
-  data: WeatherFileContent
+  status?: string
+  filename?: string
+  data?: WeatherFileContent
 }

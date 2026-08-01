@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   CloudSun,
@@ -26,8 +26,11 @@ import {
 } from '../data/mockData'
 import { DEFAULT_COORDINATES, MAX_DATE_RANGE_DAYS } from '@/constants/weather'
 import { getDaysDifference, formatDateISO, formatDisplayDate } from '@/utils/formatters'
-import { getNearestCity, resolveCityName, getCityFromFilename } from '@/utils/geocoding'
-import type { WeatherFileMetadata } from '@/types/weather'
+import { getNearestCity, getCityFromFilename } from '@/utils/geocoding'
+import { useWeatherFiles } from '@/hooks/useWeatherFiles'
+import { useWeatherFileContent } from '@/hooks/useWeatherFileContent'
+import { useStoreWeather } from '@/hooks/useStoreWeather'
+import type { WeatherFileMetadata, WeatherFileContent } from '@/types/weather'
 import toast from 'react-hot-toast'
 
 const fadeUp = {
@@ -53,29 +56,62 @@ export default function ExplorePage() {
     return formatDateISO(d)
   })
 
-  const [files, setFiles] = useState<WeatherFileMetadata[]>(INITIAL_STORED_FILES)
-  const [selectedFilename, setSelectedFilename] = useState<string | null>(
-    INITIAL_STORED_FILES[0]?.name ?? null
-  )
+  const [selectedFilename, setSelectedFilename] = useState<string | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false)
 
-  // Resolve city name on coordinate change
-  useEffect(() => {
-    let isMounted = true
-    // Immediate fast offline resolution
-    setCityName(getNearestCity(latitude, longitude))
+  // 1. Live Weather Files Query from backend
+  const {
+    files: liveFiles,
+    refetch: refetchFiles,
+  } = useWeatherFiles()
 
-    // Asynchronous fine-grained lookup with caching
-    resolveCityName(latitude, longitude).then((resolved) => {
-      if (isMounted && resolved) {
-        setCityName(resolved)
-      }
-    })
-
-    return () => {
-      isMounted = false
+  // Use live files if available, otherwise fallback to initial seeded files
+  const displayFiles: WeatherFileMetadata[] = useMemo(() => {
+    if (liveFiles && liveFiles.length > 0) {
+      return liveFiles
     }
+    return INITIAL_STORED_FILES
+  }, [liveFiles])
+
+  const hasInitializedRef = useRef(false)
+
+  // Automatically select the newest file ONCE on initial mount
+  useEffect(() => {
+    if (!hasInitializedRef.current && displayFiles.length > 0) {
+      hasInitializedRef.current = true
+      const initialFile = displayFiles[0]
+      if (initialFile) {
+        setSelectedFilename(initialFile.name)
+        const parsed = parseWeatherFilename(initialFile.name)
+        if (parsed) {
+          setLatitude(parsed.latitude)
+          setLongitude(parsed.longitude)
+          setStartDate(parsed.startDate)
+          setEndDate(parsed.endDate)
+        }
+      }
+    }
+  }, [displayFiles])
+
+  // 2. Fetch active file content via React Query
+  const {
+    data: fetchedContent,
+    isLoading: isFetchingContent,
+  } = useWeatherFileContent(selectedFilename)
+
+  // 3. Store weather mutation hook
+  const storeWeatherMutation = useStoreWeather({
+    onSuccess: (res) => {
+      if (res.file) {
+        setSelectedFilename(res.file)
+      }
+    },
+  })
+
+  // Update city name instantaneously offline with zero network requests
+  useEffect(() => {
+    setCityName(getNearestCity(latitude, longitude))
   }, [latitude, longitude])
 
   // Strict date validation
@@ -84,10 +120,14 @@ export default function ExplorePage() {
   const isRangeTooLong = daysDiff > MAX_DATE_RANGE_DAYS
   const isDateValid = !isEndBeforeStart && !isRangeTooLong && daysDiff > 0
 
-  const activeWeatherData = useMemo(() => {
+  // Derive active weather data (prioritize backend fetched content, fallback to generated preview)
+  const activeWeatherData: WeatherFileContent | null = useMemo(() => {
+    if (fetchedContent && fetchedContent.daily && fetchedContent.daily.time?.length) {
+      return fetchedContent
+    }
     if (!isDateValid) return null
     return generateMockWeatherData(latitude, longitude, startDate, endDate)
-  }, [latitude, longitude, startDate, endDate, isDateValid])
+  }, [fetchedContent, latitude, longitude, startDate, endDate, isDateValid])
 
   const handleLocationChange = (lat: number, lon: number) => {
     setLatitude(lat)
@@ -116,19 +156,18 @@ export default function ExplorePage() {
   }
 
   const handleFetchAndStore = () => {
-    const filename = `weather_${latitude}_${longitude}_${startDate}_${endDate}.json`
-    const newFile: WeatherFileMetadata = {
-      name: filename,
-      size: 2450 + Math.floor(Math.random() * 200),
-      created_at: new Date().toISOString(),
-    }
-
-    setFiles((prev) => [newFile, ...prev.filter((f) => f.name !== filename)])
-    setSelectedFilename(filename)
-    toast.success(`Saved ${cityName} dataset to archive`)
+    if (!isDateValid) return
+    storeWeatherMutation.mutate({
+      latitude,
+      longitude,
+      start_date: startDate,
+      end_date: endDate,
+    })
   }
 
-  const handleRefreshFiles = () => {}
+  const handleRefreshFiles = () => {
+    refetchFiles()
+  }
 
   const currentCondition = activeWeatherData
     ? getWeatherConditionText(activeWeatherData.daily.weather_code?.[0] ?? 1)
@@ -173,11 +212,11 @@ export default function ExplorePage() {
               onClick={() => setIsDrawerOpen(true)}
               leftIcon={<Database className="h-3.5 w-3.5 stroke-[2]" />}
               className="h-8 text-xs font-medium cursor-pointer"
-              aria-label={`Open saved files drawer, ${files.length} files`}
+              aria-label={`Open saved files drawer, ${displayFiles.length} files`}
             >
               Saved
               <span className="ml-1 tabular-nums px-1.5 py-px rounded-md bg-muted text-muted-foreground font-mono text-[11px]">
-                {files.length}
+                {displayFiles.length}
               </span>
             </Button>
 
@@ -195,7 +234,7 @@ export default function ExplorePage() {
       {/* ── MAIN ── */}
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         
-        {/* ── HERO: Shows City Name Prominently, Zero Coordinate Clutter ── */}
+        {/* ── HERO: Shows City Name Prominently ── */}
         <motion.section
           className="glass-panel rounded-2xl px-6 py-5 shadow-xs"
           {...fadeUp}
@@ -243,7 +282,10 @@ export default function ExplorePage() {
 
         {/* ── SUMMARY METRICS ── */}
         <motion.section {...fadeUp} transition={{ duration: 0.2, delay: 0.05 }}>
-          <WeatherSummaryCards weatherData={activeWeatherData} />
+          <WeatherSummaryCards
+            weatherData={activeWeatherData}
+            isLoading={isFetchingContent || storeWeatherMutation.isPending}
+          />
         </motion.section>
 
         {/* ── MAP (3) + CHART (9) ── */}
@@ -262,7 +304,10 @@ export default function ExplorePage() {
           </div>
 
           <div className="lg:col-span-9 h-full">
-            <TemperatureChart weatherData={activeWeatherData} />
+            <TemperatureChart
+              weatherData={activeWeatherData}
+              isLoading={isFetchingContent || storeWeatherMutation.isPending}
+            />
           </div>
         </motion.section>
 
@@ -278,6 +323,7 @@ export default function ExplorePage() {
               longitude={longitude}
               startDate={startDate}
               endDate={endDate}
+              isIngesting={storeWeatherMutation.isPending}
               onDateChange={(start, end) => {
                 setStartDate(start)
                 setEndDate(end)
@@ -290,7 +336,10 @@ export default function ExplorePage() {
           </div>
 
           <div className="lg:col-span-9 h-full">
-            <WeatherInsightsCard weatherData={activeWeatherData} />
+            <WeatherInsightsCard
+              weatherData={activeWeatherData}
+              isLoading={isFetchingContent || storeWeatherMutation.isPending}
+            />
           </div>
         </motion.section>
 
@@ -300,7 +349,10 @@ export default function ExplorePage() {
           {...fadeUp}
           transition={{ duration: 0.2, delay: 0.2 }}
         >
-          <WeatherDataTable weatherData={activeWeatherData} />
+          <WeatherDataTable
+            weatherData={activeWeatherData}
+            isLoading={isFetchingContent || storeWeatherMutation.isPending}
+          />
         </motion.section>
       </main>
 
@@ -313,7 +365,7 @@ export default function ExplorePage() {
       <StoredFilesDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        files={files}
+        files={displayFiles}
         selectedFilename={selectedFilename}
         onSelectFile={handleSelectFile}
         onRefresh={handleRefreshFiles}

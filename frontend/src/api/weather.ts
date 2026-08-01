@@ -4,7 +4,7 @@ import type {
   StoreWeatherRequest,
   StoreWeatherResponse,
   ListWeatherFilesResponse,
-  WeatherFileContentResponse,
+  WeatherFileContent,
 } from '@/types/weather'
 import type { HealthCheckResponse } from '@/types/api'
 
@@ -36,9 +36,13 @@ export async function listWeatherFiles(): Promise<ListWeatherFilesResponse> {
 
 export async function getWeatherFileContent(
   filename: string
-): Promise<WeatherFileContentResponse> {
-  const response = await apiClient.get<WeatherFileContentResponse>(
+): Promise<WeatherFileContent> {
+  const response = await apiClient.get<WeatherFileContent | { data: WeatherFileContent }>(
     API_ENDPOINTS.FILE_CONTENT(filename)
   )
-  return response.data
+  // Backend returns raw dict directly, or wrapped in { data: ... }
+  if (response.data && typeof response.data === 'object' && 'data' in response.data && (response.data as { data: WeatherFileContent }).data) {
+    return (response.data as { data: WeatherFileContent }).data
+  }
+  return response.data as WeatherFileContent
 }

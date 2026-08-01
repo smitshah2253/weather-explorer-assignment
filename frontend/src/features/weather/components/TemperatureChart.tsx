@@ -15,12 +15,14 @@ import {
   Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { formatDisplayDate, formatTemperature } from '@/utils/formatters'
 import type { WeatherFileContent } from '@/types/weather'
 import toast from 'react-hot-toast'
 
 interface TemperatureChartProps {
   weatherData: WeatherFileContent | null
+  isLoading?: boolean
 }
 
 interface CustomTooltipProps {
@@ -65,9 +67,36 @@ function ChartTooltip({ active, payload, label }: CustomTooltipProps) {
   return null
 }
 
-export function TemperatureChart({ weatherData }: TemperatureChartProps) {
+export function TemperatureChart({ weatherData, isLoading = false }: TemperatureChartProps) {
   const [viewMode, setViewMode] = useState<'both' | 'max' | 'min'>('both')
   const [showPrecipitation, setShowPrecipitation] = useState(true)
+
+  if (isLoading) {
+    return (
+      <div className="glass-panel rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xs h-[480px] w-full font-sans">
+        <div className="flex items-center justify-between pb-3 border-b border-border/60">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-7 rounded-lg" />
+            <Skeleton className="h-4 w-44" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-28 rounded-lg" />
+            <Skeleton className="h-7 w-16 rounded-lg" />
+          </div>
+        </div>
+        <div className="flex-1 w-full pt-6 flex flex-col justify-end gap-3">
+          <Skeleton className="h-[280px] w-full rounded-xl" />
+          <div className="flex justify-between px-2">
+            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-3 w-12" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (!weatherData || !weatherData.daily.time.length) {
     return (

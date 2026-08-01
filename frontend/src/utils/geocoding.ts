@@ -1,8 +1,5 @@
-/**
- * Geocoding and reverse-geocoding utility.
- * Resolves geographic coordinates to human-readable city and country names.
- * Features an instant offline nearest-city database + asynchronous online reverse-geocoding with memory cache.
- */
+import { parseWeatherFilename } from '@/features/weather/data/mockData'
+
 
 interface CityEntry {
   name: string
@@ -195,17 +192,10 @@ export async function resolveCityName(latitude: number, longitude: number): Prom
   return fallback
 }
 
-/**
- * Extracts coordinates from filename and resolves to a human-friendly City Name.
- */
 export function getCityFromFilename(filename: string): string {
-  const match = filename.match(
-    /^weather_([-\d.]+)_([-\d.]+)_(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})\.json$/
-  )
-  if (!match) {
+  const parsed = parseWeatherFilename(filename)
+  if (!parsed || isNaN(parsed.latitude) || isNaN(parsed.longitude)) {
     return 'Saved Dataset'
   }
-  const lat = parseFloat(match[1])
-  const lon = parseFloat(match[2])
-  return getNearestCity(lat, lon)
+  return getNearestCity(parsed.latitude, parsed.longitude)
 }

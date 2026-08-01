@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { formatDisplayDate, formatTemperature } from '@/utils/formatters'
 import {
   formatWeatherDataToTable,
@@ -38,9 +39,10 @@ import type { WeatherFileContent } from '@/types/weather'
 
 interface WeatherDataTableProps {
   weatherData: WeatherFileContent | null
+  isLoading?: boolean
 }
 
-export function WeatherDataTable({ weatherData }: WeatherDataTableProps) {
+export function WeatherDataTable({ weatherData, isLoading = false }: WeatherDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'date', desc: false },
   ])
@@ -219,6 +221,25 @@ export function WeatherDataTable({ weatherData }: WeatherDataTableProps) {
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   })
+
+  if (isLoading) {
+    return (
+      <div className="glass-panel rounded-2xl p-5 sm:p-6 flex flex-col gap-4 shadow-xs w-full font-sans">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-7 rounded-lg" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <Skeleton className="h-8 w-44 rounded-lg" />
+        </div>
+        <div className="space-y-2 pt-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   if (!weatherData) return null
 

@@ -63,25 +63,29 @@ export function generateMockWeatherData(
   const windSpeeds: number[] = []
   const weatherCodes: number[] = []
 
-  dates.forEach((_, i) => {
-    // Deterministic pseudo-random variation
-    const seed = Math.sin(lat * 10 + lon * 5 + i * 1.5)
-    const dailyVariation = seed * 4.5
+  dates.forEach((_, idx) => {
+    // Stable pseudo-random wave
+    const wave = Math.sin(idx * 0.7 + lat * 0.1 + lon * 0.05)
+    const dayNoise = Math.cos(idx * 1.3) * 3
 
-    const max = parseFloat((baseTemp + 4 + dailyVariation).toFixed(1))
-    const min = parseFloat((baseTemp - 4 + dailyVariation * 0.8).toFixed(1))
-    const precip = Math.abs(seed) > 0.4 ? parseFloat((Math.abs(seed) * 8.5).toFixed(1)) : 0
-    const wind = parseFloat((8 + Math.abs(seed) * 18).toFixed(1))
+    const tMax = Math.round((baseTemp + 4 + wave * 5 + dayNoise) * 10) / 10
+    const tMin = Math.round((tMax - 6 - Math.abs(wave) * 3) * 10) / 10
+
+    const rainChance = Math.sin(idx * 0.4 + lon * 0.2)
+    const precipitation =
+      rainChance > 0.4 ? Math.round((rainChance - 0.4) * 15 * 10) / 10 : 0
+
+    const wind = Math.round((12 + Math.abs(Math.cos(idx * 0.9)) * 18) * 10) / 10
 
     let code = 0
-    if (precip > 5) code = 65 // heavy rain
-    else if (precip > 1) code = 61 // rain
-    else if (Math.abs(seed) > 0.5) code = 3 // overcast
-    else if (Math.abs(seed) > 0.2) code = 1 // partly cloudy
+    if (precipitation > 5) code = 65 // heavy rain
+    else if (precipitation > 0) code = 61 // slight rain
+    else if (wave > 0.3) code = 1 // partly cloudy
+    else if (wave > 0.7) code = 3 // overcast
 
-    maxTemps.push(max)
-    minTemps.push(min)
-    precipitations.push(precip)
+    maxTemps.push(tMax)
+    minTemps.push(tMin)
+    precipitations.push(precipitation)
     windSpeeds.push(wind)
     weatherCodes.push(code)
   })
@@ -89,8 +93,8 @@ export function generateMockWeatherData(
   return {
     latitude: lat,
     longitude: lon,
-    elevation: 45.0,
-    generationtime_ms: 1.25,
+    elevation: 45,
+    generationtime_ms: 0.85,
     utc_offset_seconds: 0,
     timezone: 'UTC',
     timezone_abbreviation: 'UTC',
@@ -116,17 +120,25 @@ export function generateMockWeatherData(
 /**
  * Transforms raw daily arrays into table rows.
  */
-export function formatWeatherDataToTable(data: WeatherFileContent): WeatherTableRow[] {
-  const { time, temperature_2m_max, temperature_2m_min, precipitation_sum, wind_speed_10m_max, weather_code } =
-    data.daily
+export function formatWeatherDataToTable(
+  weatherData: WeatherFileContent
+): WeatherTableRow[] {
+  const {
+    time,
+    temperature_2m_max,
+    temperature_2m_min,
+    precipitation_sum,
+    wind_speed_10m_max,
+    weather_code,
+  } = weatherData.daily
 
-  return time.map((date, idx) => {
-    const maxTemp = temperature_2m_max[idx]
-    const minTemp = temperature_2m_min[idx]
-    const avgTemp = parseFloat(((maxTemp + minTemp) / 2).toFixed(1))
-    const precipitation = precipitation_sum?.[idx] ?? 0
-    const windSpeed = wind_speed_10m_max?.[idx] ?? 0
-    const code = weather_code?.[idx] ?? 0
+  return time.map((date, index) => {
+    const maxTemp = temperature_2m_max[index] ?? 0
+    const minTemp = temperature_2m_min[index] ?? 0
+    const avgTemp = Math.round(((maxTemp + minTemp) / 2) * 10) / 10
+    const precipitation = precipitation_sum?.[index] ?? 0
+    const windSpeed = wind_speed_10m_max?.[index] ?? 0
+    const code = weather_code?.[index] ?? 0
     const condition = getWeatherConditionText(code).label
 
     return {
@@ -174,8 +186,9 @@ export const INITIAL_STORED_FILES: WeatherFileMetadata[] = [
 ]
 
 /**
- * Extracts coordinates and date range from filename format:
- * `weather_{lat}_{lon}_{startDate}_{endDate}.json`
+ * Extracts coordinates and date range from filename formats:
+ * - `weather_{lat}_{lon}_{startDate}_{endDate}_{ts}.json`
+ * - `weather_{lat}_{lon}_{startDate}_{endDate}.json`
  */
 export function parseWeatherFilename(filename: string): {
   latitude: number
@@ -184,13 +197,39 @@ export function parseWeatherFilename(filename: string): {
   endDate: string
 } | null {
   const match = filename.match(
-    /^weather_([-\d.]+)_([-\d.]+)_(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})\.json$/
+    /^weather_(.+)_(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})(?:_[^.]+)?\.json$/
   )
   if (!match) return null
+
+  const coordsPart = match[1]
+  const startDate = match[2]
+  const endDate = match[3]
+
+  let lat = 0
+  let lon = 0
+
+  if (coordsPart.includes('.')) {
+    const parts = coordsPart.split('_')
+    lat = parseFloat(parts[0]) || 0
+    lon = parseFloat(parts[1]) || 0
+  } else {
+    const parts = coordsPart.split('_')
+    if (parts.length === 2) {
+      lat = parseFloat(parts[0]) || 0
+      lon = parseFloat(parts[1]) || 0
+    } else if (parts.length === 4) {
+      lat = parseFloat(`${parts[0]}.${parts[1]}`) || 0
+      lon = parseFloat(`${parts[2]}.${parts[3]}`) || 0
+    } else {
+      lat = parseFloat(parts[0]) || 0
+      lon = parseFloat(parts[parts.length - 1]) || 0
+    }
+  }
+
   return {
-    latitude: parseFloat(match[1]),
-    longitude: parseFloat(match[2]),
-    startDate: match[3],
-    endDate: match[4],
+    latitude: lat,
+    longitude: lon,
+    startDate,
+    endDate,
   }
 }

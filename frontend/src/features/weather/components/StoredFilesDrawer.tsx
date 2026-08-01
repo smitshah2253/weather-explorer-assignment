@@ -9,6 +9,7 @@ import {
   CalendarDays,
   MapPin,
   Check,
+  FilterX,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -38,6 +39,7 @@ export function StoredFilesDrawer({
   onRefresh,
 }: StoredFilesDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterDate, setFilterDate] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Close on Escape key
@@ -60,20 +62,44 @@ export function StoredFilesDrawer({
     }, 450)
   }
 
+  const handleClearFilters = () => {
+    setSearchQuery('')
+    setFilterDate('')
+  }
+
+  const hasActiveFilters = Boolean(searchQuery.trim() || filterDate)
+
   const filteredFiles = files.filter((file) => {
-    const query = searchQuery.trim().toLowerCase()
-    if (!query) return true
-
-    const cityName = getCityFromFilename(file.name).toLowerCase()
     const parsed = parseWeatherFilename(file.name)
-    const dateQuery = parsed ? `${parsed.startDate} ${parsed.endDate}`.toLowerCase() : ''
+    const cityName = getCityFromFilename(file.name).toLowerCase()
 
-    return (
-      cityName.includes(query) ||
-      file.name.toLowerCase().includes(query) ||
-      dateQuery.includes(query) ||
-      (file.created_at && file.created_at.toLowerCase().includes(query))
-    )
+    // 1. Text Search (City, File name, or Formatted Date Text)
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase()
+      const formattedDateRange = parsed
+        ? `${formatDisplayDate(parsed.startDate)} ${formatDisplayDate(parsed.endDate)} ${parsed.startDate} ${parsed.endDate}`.toLowerCase()
+        : ''
+      const matchesCity = cityName.includes(q)
+      const matchesName = file.name.toLowerCase().includes(q)
+      const matchesDateText = formattedDateRange.includes(q)
+
+      if (!matchesCity && !matchesName && !matchesDateText) {
+        return false
+      }
+    }
+
+    // 2. Date-wise Range Filter
+    if (filterDate) {
+      if (!parsed) return false
+      // Match if filterDate is inside the dataset's date span [startDate, endDate]
+      const isWithinRange =
+        filterDate >= parsed.startDate && filterDate <= parsed.endDate
+      if (!isWithinRange) {
+        return false
+      }
+    }
+
+    return true
   })
 
   return (
@@ -107,7 +133,9 @@ export function StoredFilesDrawer({
                   <div>
                     <h3 className="text-sm font-bold text-foreground">Archive Storage</h3>
                     <p className="text-xs text-muted-foreground">
-                      {files.length} saved climate datasets
+                      {hasActiveFilters
+                        ? `${filteredFiles.length} of ${files.length} climate datasets`
+                        : `${files.length} saved climate datasets`}
                     </p>
                   </div>
                 </div>
@@ -137,8 +165,8 @@ export function StoredFilesDrawer({
                 </div>
               </div>
 
-              {/* City-wise Search Bar */}
-              <div className="p-3 border-b border-border/70 bg-muted/20">
+              {/* City-wise & Date-wise Filters */}
+              <div className="p-3 border-b border-border/70 bg-muted/20 space-y-2.5">
                 <Input
                   placeholder="Search by city (e.g. Berlin, Tokyo, London)..."
                   value={searchQuery}
@@ -147,6 +175,32 @@ export function StoredFilesDrawer({
                   className="text-xs h-8 bg-background font-sans placeholder:font-sans"
                   aria-label="Search saved datasets by city"
                 />
+
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      leftIcon={<CalendarDays className="h-3.5 w-3.5 text-muted-foreground stroke-[2]" />}
+                      className="text-xs h-8 bg-background font-mono"
+                      aria-label="Filter datasets by date"
+                    />
+                  </div>
+
+                  {hasActiveFilters && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      leftIcon={<FilterX className="h-3 w-3 stroke-[2]" />}
+                      className="h-8 px-2.5 text-[11px] text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+                      aria-label="Clear all filters"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* File List */}
@@ -156,8 +210,13 @@ export function StoredFilesDrawer({
                     icon={Braces}
                     title="No datasets found"
                     description={
-                      searchQuery
-                        ? `No saved files matching city "${searchQuery}"`
+                      hasActiveFilters
+                        ? `No saved files matching current filters (${[
+                          searchQuery ? `city "${searchQuery}"` : null,
+                          filterDate ? `date "${filterDate}"` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(', ')})`
                         : 'Fetch and store weather records to populate archive.'
                     }
                   />
@@ -175,21 +234,19 @@ export function StoredFilesDrawer({
                           onSelectFile(file)
                           onClose()
                         }}
-                        className={`p-3.5 rounded-xl border transition-all cursor-pointer text-left ${
-                          isSelected
+                        className={`p-3.5 rounded-xl border transition-all cursor-pointer text-left ${isSelected
                             ? 'border-primary bg-primary/5 shadow-xs ring-1 ring-primary/30'
                             : 'border-border/80 hover:border-border bg-card/80 hover:bg-muted/40'
-                        }`}
+                          }`}
                       >
                         {/* City Name Header */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <div
-                              className={`p-1.5 rounded-lg shrink-0 ${
-                                isSelected
+                              className={`p-1.5 rounded-lg shrink-0 ${isSelected
                                   ? 'bg-primary text-primary-foreground'
                                   : 'bg-muted text-muted-foreground'
-                              }`}
+                                }`}
                             >
                               <MapPin className="h-3.5 w-3.5 stroke-[2.2]" />
                             </div>

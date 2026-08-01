@@ -6,14 +6,45 @@ import {
   TrendingUp,
   Wind,
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/Skeleton'
 import type { WeatherFileContent } from '@/types/weather'
 import { formatTemperature, formatDisplayDate } from '@/utils/formatters'
 
 interface WeatherInsightsCardProps {
   weatherData: WeatherFileContent | null
+  isLoading?: boolean
 }
 
-export function WeatherInsightsCard({ weatherData }: WeatherInsightsCardProps) {
+export function WeatherInsightsCard({ weatherData, isLoading = false }: WeatherInsightsCardProps) {
+  if (isLoading) {
+    return (
+      <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-xs h-full font-sans">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-7 rounded-lg" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <Skeleton className="h-3 w-16" />
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="p-3 rounded-xl border border-border/50 bg-background/40 flex flex-col justify-between gap-2"
+            >
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-3 w-14" />
+            </div>
+          ))}
+        </div>
+
+        <Skeleton className="h-8 w-full rounded-lg" />
+      </div>
+    )
+  }
+
   if (!weatherData || !weatherData.daily.time.length) {
     return null
   }

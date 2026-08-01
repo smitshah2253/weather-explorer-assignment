@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   CalendarDays,
   Loader2,
@@ -18,6 +20,7 @@ import {
   getMaxDate,
 } from '@/utils/formatters'
 import { MAX_DATE_RANGE_DAYS, MIN_HISTORICAL_YEAR } from '@/constants/weather'
+import { weatherFormSchema, type WeatherFormValues } from '../schemas/weatherSchema'
 import type { WeatherFileContent } from '@/types/weather'
 import toast from 'react-hot-toast'
 
@@ -26,6 +29,7 @@ interface IngestionControlCardProps {
   longitude: number
   startDate: string
   endDate: string
+  isIngesting?: boolean
   onDateChange: (start: string, end: string) => void
   onFetchAndStore: () => void
   activeWeatherData: WeatherFileContent | null
@@ -37,70 +41,101 @@ export function IngestionControlCard({
   longitude,
   startDate,
   endDate,
+  isIngesting = false,
   onDateChange,
   onFetchAndStore,
   activeWeatherData,
   activeFilename,
 }: IngestionControlCardProps) {
-  const [isIngesting, setIsIngesting] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
-
   const today = formatDateISO(new Date())
 
+  // Initialize React Hook Form with Zod schema
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<WeatherFormValues>({
+    resolver: zodResolver(weatherFormSchema),
+    defaultValues: {
+      latitude,
+      longitude,
+      startDate,
+      endDate,
+    },
+    mode: 'onChange',
+  })
+
+  // Synchronize form values when parent props change
+  useEffect(() => {
+    setValue('latitude', latitude, { shouldValidate: true })
+    setValue('longitude', longitude, { shouldValidate: true })
+  }, [latitude, longitude, setValue])
+
+  useEffect(() => {
+    setValue('startDate', startDate, { shouldValidate: true })
+    setValue('endDate', endDate, { shouldValidate: true })
+  }, [startDate, endDate, setValue])
+
+  const formStartDate = watch('startDate') || startDate
+  const formEndDate = watch('endDate') || endDate
+
   // Max allowable end date from current start date (strictly <= 31 days range)
-  const maxAllowedEndDate = startDate
-    ? getMinDate(addDays(startDate, MAX_DATE_RANGE_DAYS - 1), today)
+  const maxAllowedEndDate = formStartDate
+    ? getMinDate(addDays(formStartDate, MAX_DATE_RANGE_DAYS - 1), today)
     : today
 
   // Min allowable start date from current end date
-  const minAllowedStartDate = endDate
-    ? getMaxDate(`${MIN_HISTORICAL_YEAR}-01-01`, addDays(endDate, -(MAX_DATE_RANGE_DAYS - 1)))
+  const minAllowedStartDate = formEndDate
+    ? getMaxDate(`${MIN_HISTORICAL_YEAR}-01-01`, addDays(formEndDate, -(MAX_DATE_RANGE_DAYS - 1)))
     : `${MIN_HISTORICAL_YEAR}-01-01`
 
-  const daysDiff = getDaysDifference(startDate, endDate)
-  const isEndBeforeStart = startDate && endDate && new Date(endDate) < new Date(startDate)
-  const isEndInFuture = endDate && endDate > today
+  const daysDiff = getDaysDifference(formStartDate, formEndDate)
+  const isEndBeforeStart = formStartDate && formEndDate && new Date(formEndDate) < new Date(formStartDate)
+  const isEndInFuture = formEndDate && formEndDate > today
   const isRangeTooLong = daysDiff > MAX_DATE_RANGE_DAYS
   const isDateValid =
-    !!startDate &&
-    !!endDate &&
+    !!formStartDate &&
+    !!formEndDate &&
     !isEndBeforeStart &&
     !isEndInFuture &&
     !isRangeTooLong &&
-    daysDiff > 0
+    daysDiff > 0 &&
+    !errors.startDate &&
+    !errors.endDate
 
   const handleStartDateChange = (newStart: string) => {
     if (!newStart) {
-      onDateChange(newStart, endDate)
+      onDateChange(newStart, formEndDate)
       return
     }
 
-    let adjustedEnd = endDate
-    // If new start date is after current end date, push end date forward
-    if (newStart > endDate) {
+    let adjustedEnd = formEndDate
+    if (newStart > formEndDate) {
       adjustedEnd = getMinDate(addDays(newStart, 14), today)
     }
-    // If range exceeds 31 days, clamp end date
     const diff = getDaysDifference(newStart, adjustedEnd)
     if (diff > MAX_DATE_RANGE_DAYS) {
       adjustedEnd = getMinDate(addDays(newStart, MAX_DATE_RANGE_DAYS - 1), today)
     }
 
+    setValue('startDate', newStart, { shouldValidate: true })
+    setValue('endDate', adjustedEnd, { shouldValidate: true })
     onDateChange(newStart, adjustedEnd)
   }
 
   const handleEndDateChange = (newEnd: string) => {
     if (!newEnd) {
-      onDateChange(startDate, newEnd)
+      onDateChange(formStartDate, newEnd)
       return
     }
 
-    let adjustedStart = startDate
-    // If new end date is before current start date, push start date backward
-    if (newEnd < startDate) {
+    let adjustedStart = formStartDate
+    if (newEnd < formStartDate) {
       adjustedStart = getMaxDate(`${MIN_HISTORICAL_YEAR}-01-01`, addDays(newEnd, -14))
     }
-    // If range exceeds 31 days, clamp start date
     const diff = getDaysDifference(adjustedStart, newEnd)
     if (diff > MAX_DATE_RANGE_DAYS) {
       adjustedStart = getMaxDate(
@@ -109,6 +144,8 @@ export function IngestionControlCard({
       )
     }
 
+    setValue('startDate', adjustedStart, { shouldValidate: true })
+    setValue('endDate', newEnd, { shouldValidate: true })
     onDateChange(adjustedStart, newEnd)
   }
 
@@ -121,23 +158,26 @@ export function IngestionControlCard({
       yearAgoEnd.setFullYear(yearAgoEnd.getFullYear() - 1)
       const yearAgoStart = new Date(yearAgoEnd)
       yearAgoStart.setDate(yearAgoStart.getDate() - 13)
-      onDateChange(formatDateISO(yearAgoStart), formatDateISO(yearAgoEnd))
+      const s = formatDateISO(yearAgoStart)
+      const e = formatDateISO(yearAgoEnd)
+      setValue('startDate', s, { shouldValidate: true })
+      setValue('endDate', e, { shouldValidate: true })
+      onDateChange(s, e)
       return
     }
 
     const days = presetType === '7d' ? 7 : presetType === '14d' ? 14 : 30
     const start = new Date(end)
     start.setDate(end.getDate() - (days - 1))
-    onDateChange(formatDateISO(start), formatDateISO(end))
+    const s = formatDateISO(start)
+    const e = formatDateISO(end)
+    setValue('startDate', s, { shouldValidate: true })
+    setValue('endDate', e, { shouldValidate: true })
+    onDateChange(s, e)
   }
 
-  const handleExecuteFetch = () => {
-    if (!isDateValid) return
-    setIsIngesting(true)
-    setTimeout(() => {
-      setIsIngesting(false)
-      onFetchAndStore()
-    }, 600)
+  const onFormSubmit = () => {
+    onFetchAndStore()
   }
 
   const handleExportDataset = () => {
@@ -149,7 +189,7 @@ export function IngestionControlCard({
     a.href = url
     a.download =
       activeFilename ||
-      `weather_${latitude}_${longitude}_${startDate}_${endDate}.json`
+      `weather_${latitude}_${longitude}_${formStartDate}_${formEndDate}.json`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -170,7 +210,10 @@ export function IngestionControlCard({
   }
 
   return (
-    <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-xs h-full font-sans">
+    <form
+      onSubmit={handleSubmit(onFormSubmit)}
+      className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-xs h-full font-sans"
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -192,28 +235,42 @@ export function IngestionControlCard({
         </Badge>
       </div>
 
+      {/* Hidden form inputs for coordinates */}
+      <input type="hidden" {...register('latitude', { valueAsNumber: true })} />
+      <input type="hidden" {...register('longitude', { valueAsNumber: true })} />
+
       {/* Date Inputs with strict selection clamping */}
       <div className="grid grid-cols-2 gap-3">
-        <Input
-          label="Start Date"
-          type="date"
-          min={minAllowedStartDate}
-          max={getMinDate(endDate, today)}
-          value={startDate}
-          onChange={(e) => handleStartDateChange(e.target.value)}
-          className="h-8 text-xs font-mono bg-background/80"
-          aria-label="Start date"
-        />
-        <Input
-          label="End Date"
-          type="date"
-          min={startDate || `${MIN_HISTORICAL_YEAR}-01-01`}
-          max={maxAllowedEndDate}
-          value={endDate}
-          onChange={(e) => handleEndDateChange(e.target.value)}
-          className="h-8 text-xs font-mono bg-background/80"
-          aria-label="End date"
-        />
+        <div>
+          <Input
+            label="Start Date"
+            type="date"
+            min={minAllowedStartDate}
+            max={getMinDate(formEndDate, today)}
+            value={formStartDate}
+            onChange={(e) => handleStartDateChange(e.target.value)}
+            className="h-8 text-xs font-mono bg-background/80"
+            aria-label="Start date"
+          />
+          {errors.startDate && (
+            <p className="text-[10px] text-destructive mt-1">{errors.startDate.message}</p>
+          )}
+        </div>
+        <div>
+          <Input
+            label="End Date"
+            type="date"
+            min={formStartDate || `${MIN_HISTORICAL_YEAR}-01-01`}
+            max={maxAllowedEndDate}
+            value={formEndDate}
+            onChange={(e) => handleEndDateChange(e.target.value)}
+            className="h-8 text-xs font-mono bg-background/80"
+            aria-label="End date"
+          />
+          {errors.endDate && (
+            <p className="text-[10px] text-destructive mt-1">{errors.endDate.message}</p>
+          )}
+        </div>
       </div>
 
       {/* Quick Presets */}
@@ -240,9 +297,9 @@ export function IngestionControlCard({
       {/* Actions */}
       <div className="space-y-2 pt-3 border-t border-border/60">
         <Button
+          type="submit"
           className="w-full h-9 text-xs font-semibold shadow-xs"
           disabled={!isDateValid || isIngesting}
-          onClick={handleExecuteFetch}
           leftIcon={
             isIngesting ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -252,11 +309,12 @@ export function IngestionControlCard({
           }
           aria-label={isIngesting ? 'Saving data...' : 'Fetch and store weather data'}
         >
-          {isIngesting ? 'Saving...' : 'Fetch & Store Data'}
+          {isIngesting ? 'Fetching & Saving...' : 'Fetch & Store Data'}
         </Button>
 
         <div className="flex items-center gap-2">
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={handleExportDataset}
@@ -269,6 +327,7 @@ export function IngestionControlCard({
           </Button>
 
           <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={handleCopyResponse}
@@ -287,6 +346,6 @@ export function IngestionControlCard({
           </Button>
         </div>
       </div>
-    </div>
+    </form>
   )
 }
