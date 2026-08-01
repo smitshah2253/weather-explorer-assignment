@@ -1,6 +1,6 @@
 /**
  * Domain types for Weather Explorer application.
- * Mirrors backend Pydantic models & Open-Meteo responses.
+ * Mirrors backend Pydantic models & weather responses.
  */
 
 export interface StoreWeatherRequest {
