@@ -103,3 +103,46 @@ def test_delete_file_success(gcs_client):
     gcs_client.bucket.blob.return_value = mock_blob
     gcs_client.delete_file("test.json")
     mock_blob.delete.assert_called_once()
+
+def test_initialization_no_project_fallback():
+    """Verify initialization fallback when no project is set."""
+    with patch("app.storage.gcs_client.settings.GCP_PROJECT_ID", None):
+        with patch("app.storage.gcs_client.storage.Client") as mock:
+            GoogleCloudStorageClient()
+            mock.assert_called_once_with()
+
+def test_download_json_generic_exception(gcs_client):
+    """Verify generic exception on download."""
+    mock_blob = Mock()
+    mock_blob.download_as_bytes.side_effect = Exception("Generic")
+    gcs_client.bucket.blob.return_value = mock_blob
+    with pytest.raises(StorageError):
+        gcs_client.download_json("test.json")
+
+def test_list_files_generic_exception(gcs_client):
+    """Verify generic exception on list."""
+    gcs_client.bucket.list_blobs.side_effect = Exception("Generic")
+    with pytest.raises(StorageError):
+        gcs_client.list_files()
+
+def test_blob_exists_generic_exception(gcs_client):
+    """Verify generic exception on blob exists."""
+    gcs_client.bucket.blob.side_effect = Exception("Generic")
+    with pytest.raises(StorageError):
+        gcs_client.blob_exists("test.json")
+
+def test_delete_file_not_found(gcs_client):
+    """Verify not found on delete."""
+    mock_blob = Mock()
+    mock_blob.delete.side_effect = NotFound("Missing")
+    gcs_client.bucket.blob.return_value = mock_blob
+    with pytest.raises(StorageFileNotFound):
+        gcs_client.delete_file("test.json")
+
+def test_delete_file_generic_exception(gcs_client):
+    """Verify generic exception on delete."""
+    mock_blob = Mock()
+    mock_blob.delete.side_effect = Exception("Generic")
+    gcs_client.bucket.blob.return_value = mock_blob
+    with pytest.raises(StorageError):
+        gcs_client.delete_file("test.json")

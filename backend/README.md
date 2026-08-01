@@ -33,6 +33,21 @@ This is a Python 3.12 RESTful API built with FastAPI. It forms the backend for t
    uvicorn app.main:app --reload
    ```
 
+## Testing
+
+To run the test suite and verify code coverage:
+
+```bash
+# Run all tests
+pytest
+
+# Run tests with coverage summary in the terminal
+pytest --cov=app
+
+# Run tests and generate an HTML coverage report
+pytest --cov=app --cov-report=html
+```
+
 ## Folder Structure
 - `app/` - Main application code.
   - `main.py` - FastAPI entry point.
