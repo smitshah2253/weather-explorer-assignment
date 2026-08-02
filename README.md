@@ -6,7 +6,7 @@ Full-stack application for fetching, storing, and visualizing historical meteoro
 
 ## Live Demo & Endpoints
 
-- **Frontend App**: [https://climate-weather-explorer.vercel.app](https://climate-weather-explorer.vercel.app) *(or your Vercel URL)*
+- **Frontend App**: [ https://weather-explorer-assignment-ecu5.vercel.app/](https://weather-explorer-assignment-ecu5.vercel.app/) *(or your Vercel URL)*
 - **Backend API**: `https://weather-explorer-api-483908344338.asia-south1.run.app`
 - **Swagger Docs**: [https://weather-explorer-api-483908344338.asia-south1.run.app/docs](https://weather-explorer-api-483908344338.asia-south1.run.app/docs)
 - **Health Check**: `https://weather-explorer-api-483908344338.asia-south1.run.app/health`
