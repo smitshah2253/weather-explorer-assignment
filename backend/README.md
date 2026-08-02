@@ -1,57 +1,72 @@
 # Weather Explorer Backend
 
-This is a Python 3.12 RESTful API built with FastAPI. It forms the backend for the Weather Explorer monorepo.
+FastAPI backend service responsible for fetching meteorological archives from Open-Meteo and storing/retrieving JSON datasets in Google Cloud Storage (GCS).
 
 ## Tech Stack
 - **Framework**: FastAPI (Python 3.12)
-- **Validation**: Pydantic v2
-- **Server**: Uvicorn
-- **Testing**: Pytest
-- **Linting/Formatting**: Ruff, Black
+- **Data Validation & Settings**: Pydantic v2, Pydantic-Settings
+- **Serialization**: ORJSON (Rust-based JSON serializer)
+- **HTTP Client**: HTTPX (async with connection pooling)
+- **Cloud Storage**: Google Cloud Storage SDK (`google-cloud-storage`)
+- **Logging**: Loguru (structured logging + request tracing)
+- **Testing**: Pytest, Pytest-Asyncio, Respx, Unittest.mock
+- **Linting & Formatting**: Ruff, Black
 
-## Setup
+---
 
-1. Create a virtual environment:
-   ```bash
-   python -m venv .venv
-   ```
+## Setup & Running
 
-2. Activate the virtual environment:
-   - On Windows: `.venv\Scripts\activate`
-   - On macOS/Linux: `source .venv/bin/activate`
+### 1. Create and activate virtual environment
+```bash
+python -m venv .venv
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+# Windows (PowerShell):
+.venv\Scripts\activate
 
-4. Set up environment variables:
-   Copy `.env.example` to `.env` and configure accordingly.
+# macOS / Linux:
+source .venv/bin/activate
+```
 
-5. Run development server:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+### 2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
 
-## Testing
+### 3. Configure environment variables
+```bash
+cp .env.example .env
+```
+*Configure `GCS_BUCKET_NAME` and `GCP_PROJECT_ID` (or `GOOGLE_APPLICATION_CREDENTIALS`) if running against your own GCP project.*
 
-To run the test suite and verify code coverage:
+### 4. Start development server
+```bash
+uvicorn app.main:app --reload --reload-dir app --port 8000
+```
+- API Base: `http://localhost:8000`
+- Interactive Swagger Docs: `http://localhost:8000/docs`
+- Health Probe: `http://localhost:8000/health`
+
+---
+
+## Running Tests
+
+All unit and integration tests run offline (Open-Meteo network is mocked via `respx` and GCS is mocked via `unittest.mock`).
 
 ```bash
 # Run all tests
-pytest
+pytest -v
 
-# Run tests with coverage summary in the terminal
-pytest --cov=app
+# Run tests with coverage summary
+pytest --cov=app --cov-report=term-missing
 
-# Run tests and generate an HTML coverage report
+# Generate HTML coverage report
 pytest --cov=app --cov-report=html
 ```
 
-## Folder Structure
-- `app/` - Main application code.
-  - `main.py` - FastAPI entry point.
-  - `core/config.py` - Pydantic BaseSettings.
-- `tests/` - Pytest test suite.
-- `pyproject.toml` - Configuration for Ruff, Black, and Pytest.
-- `requirements.txt` - Python dependencies.
+---
+
+## Code Quality & Linting
+```bash
+ruff check .
+black --check .
+```

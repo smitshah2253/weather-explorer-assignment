@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Monorepo root for weather-explorer",
   "scripts": {
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev": "concurrently -n \"FE,BE\" -c \"cyan,magenta\" \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && .venv\\Scripts\\activate && uvicorn app.main:app --reload",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && python -m venv .venv && .venv\\Scripts\\activate && pip install -r requirements.txt"
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --reload-dir app --port 8000",
+    "test:backend": "cd backend && pytest -v"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

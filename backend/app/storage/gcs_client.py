@@ -27,8 +27,9 @@ class GoogleCloudStorageClient:
             else:
                 self.client = storage.Client()
                 
-            bucket_name = settings.GCS_BUCKET_NAME
+            bucket_name = (settings.GCS_BUCKET_NAME or "").strip()
             self.bucket = self.client.bucket(bucket_name)
+
         except Exception as e:
             logger.error(f"Failed to initialize GCS client: {e}")
             raise StorageError(f"Failed to initialize GCS client: {e}") from e
