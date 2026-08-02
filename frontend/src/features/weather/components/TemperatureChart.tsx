@@ -13,6 +13,8 @@ import {
   FileDown,
   Droplets,
   Check,
+  LineChart,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -67,16 +69,19 @@ function ChartTooltip({ active, payload, label }: CustomTooltipProps) {
   return null
 }
 
-export function TemperatureChart({ weatherData, isLoading = false }: TemperatureChartProps) {
+export function TemperatureChart({
+  weatherData,
+  isLoading = false,
+}: TemperatureChartProps) {
   const [viewMode, setViewMode] = useState<'both' | 'max' | 'min'>('both')
   const [showPrecipitation, setShowPrecipitation] = useState(true)
 
   if (isLoading) {
     return (
-      <div className="glass-panel rounded-2xl p-3.5 sm:p-5 lg:p-6 flex flex-col justify-between shadow-xs h-[320px] sm:h-[380px] lg:h-[460px] xl:h-[480px] w-full font-sans">
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-border/60">
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-7 w-7 rounded-lg shrink-0" />
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 shadow-xs h-[320px] sm:h-[380px] lg:h-[460px] xl:h-[480px] w-full flex flex-col justify-between font-sans">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1.5">
+            <Skeleton className="h-5 sm:h-6 w-48 sm:w-56" />
             <Skeleton className="h-4 w-36 sm:w-44" />
           </div>
           <div className="flex items-center gap-2">
@@ -99,8 +104,64 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
 
   if (!weatherData || !weatherData.daily.time.length) {
     return (
-      <div className="glass-panel rounded-2xl p-4 sm:p-6 shadow-xs h-[320px] sm:h-[380px] lg:h-[460px] xl:h-[480px] w-full flex items-center justify-center">
-        <p className="text-xs sm:text-sm text-muted-foreground text-center">Select a location and date range to see weather data</p>
+      <div className="glass-panel rounded-2xl p-6 sm:p-8 lg:p-10 shadow-xs min-h-[360px] sm:min-h-[420px] lg:min-h-[460px] w-full flex flex-col items-center justify-center text-center font-sans">
+        {/* Animated Visual Icon */}
+        <div className="relative mb-4 sm:mb-5">
+          <div className="absolute -inset-1.5 bg-gradient-to-r from-primary/30 to-blue-500/30 rounded-2xl blur-md opacity-70 animate-pulse" />
+          <div className="relative h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/20 flex items-center justify-center shadow-inner">
+            <LineChart className="h-7 w-7 sm:h-8 sm:w-8 text-primary stroke-[1.8]" />
+          </div>
+        </div>
+
+        {/* Title */}
+        <h3 className="text-base sm:text-lg font-bold text-foreground mb-2 tracking-tight">
+          Ready to Explore Climate Data
+        </h3>
+
+        {/* Detailed Explanation */}
+        <p className="text-xs sm:text-sm text-muted-foreground max-w-md mb-6 leading-relaxed">
+          Select coordinates on the map or choose a city, set your date range, and click{' '}
+          <strong className="text-primary font-semibold">Fetch &amp; Store Weather Data</strong> to retrieve live historical records and generate interactive analytics.
+        </p>
+
+        {/* 3 Step Workflow Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 w-full max-w-lg mb-5 text-left">
+          <div className="p-3 rounded-xl bg-muted/30 border border-border/60 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">1</span>
+              Set Location
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-tight">
+              Click the map or search any city worldwide.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-muted/30 border border-border/60 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">2</span>
+              Fetch &amp; Store
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-tight">
+              Fetch Open-Meteo data into GCS archive.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-muted/30 border border-border/60 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">3</span>
+              Visualize
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-tight">
+              Explore charts, AI insights &amp; data tables.
+            </p>
+          </div>
+        </div>
+
+        {/* Pro Tip */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-muted/50 border border-border/70 text-[11px] text-muted-foreground max-w-md">
+          <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+          <span>Tip: You can also open <strong className="text-foreground font-medium">Archive Storage</strong> (top-right) to browse and load previously saved datasets.</span>
+        </div>
       </div>
     )
   }
@@ -207,7 +268,7 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
-            margin={{ top: 8, right: 8, left: -24, bottom: 0 }}
+            margin={{ top: 8, right: showPrecipitation ? -12 : 8, left: -20, bottom: 0 }}
           >
             <defs>
               <linearGradient id="gMax" x1="0" y1="0" x2="0" y2="1">
@@ -219,7 +280,7 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
                 <stop offset="95%" stopColor="#0284c7" stopOpacity={0.0} />
               </linearGradient>
               <linearGradient id="gRain" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2} />
+                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.25} />
                 <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
               </linearGradient>
             </defs>
@@ -232,7 +293,9 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
 
             <XAxis
               dataKey="date"
+              minTickGap={22}
               tickFormatter={(val) => {
+                if (!val) return ''
                 const p = val.split('-')
                 return `${p[1]}/${p[2]}`
               }}
@@ -241,17 +304,34 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
               axisLine={false}
             />
 
+            {/* Left Y-Axis: Temperature (°C) */}
             <YAxis
+              yAxisId="temp"
               unit="°"
+              domain={[(dataMin: number) => Math.floor(dataMin - 2), (dataMax: number) => Math.ceil(dataMax + 2)]}
               className="text-[10px] fill-muted-foreground font-mono"
               tickLine={false}
               axisLine={false}
             />
 
+            {/* Right Y-Axis: Precipitation (mm) */}
+            {showPrecipitation && (
+              <YAxis
+                yAxisId="rain"
+                orientation="right"
+                unit="mm"
+                domain={[0, (dataMax: number) => Math.max(10, Math.ceil(dataMax * 1.5))]}
+                className="text-[10px] fill-muted-foreground font-mono"
+                tickLine={false}
+                axisLine={false}
+              />
+            )}
+
             <Tooltip content={<ChartTooltip />} />
 
             {(viewMode === 'both' || viewMode === 'max') && (
               <Area
+                yAxisId="temp"
                 type="monotone"
                 dataKey="maxTemp"
                 name="Max Temp"
@@ -266,6 +346,7 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
 
             {(viewMode === 'both' || viewMode === 'min') && (
               <Area
+                yAxisId="temp"
                 type="monotone"
                 dataKey="minTemp"
                 name="Min Temp"
@@ -280,6 +361,7 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
 
             {showPrecipitation && (
               <Area
+                yAxisId="rain"
                 type="monotone"
                 dataKey="precipitation"
                 name="Rain"

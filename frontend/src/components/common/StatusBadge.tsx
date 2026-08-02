@@ -6,7 +6,8 @@ export function StatusBadge() {
   const { data, isLoading, isError } = useQuery({
     queryKey: WEATHER_KEYS.health(),
     queryFn: checkBackendHealth,
-    refetchInterval: 30000,
+    refetchInterval: 60_000, // 60 seconds — less noisy while still responsive
+    staleTime: 55_000,       // Prevent unnecessary refetch on mount within interval
     retry: 1,
   })
 

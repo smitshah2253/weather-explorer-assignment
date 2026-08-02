@@ -19,8 +19,6 @@ import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { Button } from '@/components/ui/Button'
 import {
-  INITIAL_STORED_FILES,
-  generateMockWeatherData,
   parseWeatherFilename,
   getWeatherConditionText,
 } from '../data/mockData'
@@ -29,7 +27,7 @@ import { getDaysDifference, formatDateISO, formatDisplayDate } from '@/utils/for
 import { getNearestCity, getCityFromFilename } from '@/utils/geocoding'
 import { useWeatherFiles } from '@/hooks/useWeatherFiles'
 import { useWeatherFileContent } from '@/hooks/useWeatherFileContent'
-import { useStoreWeather } from '@/hooks/useStoreWeather'
+import { useSmartFetchStore } from '@/hooks/useSmartFetchStore'
 import type { WeatherFileMetadata, WeatherFileContent } from '@/types/weather'
 import toast from 'react-hot-toast'
 
@@ -47,7 +45,7 @@ export default function ExplorePage() {
 
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date()
-    d.setDate(d.getDate() - 15)
+    d.setDate(d.getDate() - 31)
     return formatDateISO(d)
   })
   const [endDate, setEndDate] = useState<string>(() => {
@@ -62,17 +60,13 @@ export default function ExplorePage() {
 
   // 1. Live Weather Files Query from backend
   const {
-    files: liveFiles,
+    files,
+    isLoading: isFilesLoading,
     refetch: refetchFiles,
   } = useWeatherFiles()
 
-  // Use live files if available, otherwise fallback to initial seeded files
-  const displayFiles: WeatherFileMetadata[] = useMemo(() => {
-    if (liveFiles && liveFiles.length > 0) {
-      return liveFiles
-    }
-    return INITIAL_STORED_FILES
-  }, [liveFiles])
+  // Use live files from backend (no mock fallback in production)
+  const displayFiles: WeatherFileMetadata[] = files
 
   const hasInitializedRef = useRef(false)
 
@@ -100,14 +94,20 @@ export default function ExplorePage() {
     isLoading: isFetchingContent,
   } = useWeatherFileContent(selectedFilename)
 
-  // 3. Store weather mutation hook
-  const storeWeatherMutation = useStoreWeather({
-    onSuccess: (res) => {
-      if (res.file) {
-        setSelectedFilename(res.file)
-      }
-    },
-  })
+  // 3. Smart Fetch & Store with deduplication
+  const { smartFetchAndStore, isPending: isStoring } = useSmartFetchStore(
+    displayFiles,
+    {
+      onSuccess: (res) => {
+        if (res.file) {
+          setSelectedFilename(res.file)
+        }
+      },
+      onExistingFile: (filename) => {
+        setSelectedFilename(filename)
+      },
+    }
+  )
 
   // Update city name instantaneously offline with zero network requests
   useEffect(() => {
@@ -120,14 +120,13 @@ export default function ExplorePage() {
   const isRangeTooLong = daysDiff > MAX_DATE_RANGE_DAYS
   const isDateValid = !isEndBeforeStart && !isRangeTooLong && daysDiff > 0
 
-  // Derive active weather data (prioritize backend fetched content, fallback to generated preview)
+  // Derive active weather data from backend content only (no mock data)
   const activeWeatherData: WeatherFileContent | null = useMemo(() => {
     if (fetchedContent && fetchedContent.daily && fetchedContent.daily.time?.length) {
       return fetchedContent
     }
-    if (!isDateValid) return null
-    return generateMockWeatherData(latitude, longitude, startDate, endDate)
-  }, [fetchedContent, latitude, longitude, startDate, endDate, isDateValid])
+    return null
+  }, [fetchedContent])
 
   const handleLocationChange = (lat: number, lon: number) => {
     setLatitude(lat)
@@ -157,12 +156,7 @@ export default function ExplorePage() {
 
   const handleFetchAndStore = () => {
     if (!isDateValid) return
-    storeWeatherMutation.mutate({
-      latitude,
-      longitude,
-      start_date: startDate,
-      end_date: endDate,
-    })
+    smartFetchAndStore(latitude, longitude, startDate, endDate)
   }
 
   const handleRefreshFiles = () => {
@@ -183,10 +177,10 @@ export default function ExplorePage() {
         <div className="max-w-[1536px] xl:max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs shrink-0"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white shadow-xs shrink-0"
               aria-hidden="true"
             >
-              <CloudSun className="h-4 w-4 stroke-[2.2]" />
+              <CloudSun className="h-4 w-4 stroke-[2.2] text-white" />
             </div>
             <span className="text-sm font-semibold tracking-tight text-foreground truncate">
               Weather Explorer
@@ -291,7 +285,7 @@ export default function ExplorePage() {
           >
             <WeatherSummaryCards
               weatherData={activeWeatherData}
-              isLoading={isFetchingContent || storeWeatherMutation.isPending}
+              isLoading={isFetchingContent || isStoring}
             />
           </motion.section>
 
@@ -316,7 +310,7 @@ export default function ExplorePage() {
                 longitude={longitude}
                 startDate={startDate}
                 endDate={endDate}
-                isIngesting={storeWeatherMutation.isPending}
+                isIngesting={isStoring}
                 onDateChange={(start, end) => {
                   setStartDate(start)
                   setEndDate(end)
@@ -338,14 +332,14 @@ export default function ExplorePage() {
             <div className="w-full">
               <TemperatureChart
                 weatherData={activeWeatherData}
-                isLoading={isFetchingContent || storeWeatherMutation.isPending}
+                isLoading={isFetchingContent || isStoring}
               />
             </div>
 
             <div className="w-full">
               <WeatherInsightsCard
                 weatherData={activeWeatherData}
-                isLoading={isFetchingContent || storeWeatherMutation.isPending}
+                isLoading={isFetchingContent || isStoring}
               />
             </div>
           </motion.section>
@@ -358,7 +352,7 @@ export default function ExplorePage() {
           >
             <WeatherDataTable
               weatherData={activeWeatherData}
-              isLoading={isFetchingContent || storeWeatherMutation.isPending}
+              isLoading={isFetchingContent || isStoring}
             />
           </motion.section>
 
@@ -378,6 +372,7 @@ export default function ExplorePage() {
         selectedFilename={selectedFilename}
         onSelectFile={handleSelectFile}
         onRefresh={handleRefreshFiles}
+        isLoading={isFilesLoading}
       />
 
       <JsonModal

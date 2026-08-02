@@ -82,7 +82,7 @@
     --popover: 224 35% 8.5%;
     --popover-foreground: 210 40% 98%;
     --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
     --secondary: 217.2 25% 14%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 25% 14%;
@@ -103,11 +103,22 @@
   }
   html, body, #root {
     @apply min-h-full w-full bg-background text-foreground font-sans antialiased;
+    transition: background-color 300ms ease, color 300ms ease;
+  }
+  header, nav, main, aside, section, footer, article {
+    transition: background-color 300ms ease, border-color 300ms ease;
+  }
+  input, select, textarea, button {
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+  }
+  table, th, td {
+    transition: background-color 200ms ease, border-color 200ms ease;
   }
 }
 
 /* Atmospheric Ambient Aurora & Glass Panel System */
 .ambient-glow-bg {
+  transition: background 400ms ease, background-color 400ms ease;
   background: 
     radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.07) 0px, transparent 55%),
     radial-gradient(at 100% 0%, rgba(249, 115, 22, 0.06) 0px, transparent 50%),
@@ -124,6 +135,7 @@
 }
 
 .glass-panel {
+  transition: background-color 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);

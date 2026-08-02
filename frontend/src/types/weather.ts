@@ -56,9 +56,3 @@ export interface WeatherFileContent {
   daily_units?: DailyWeatherUnits
   daily: DailyWeatherData
 }
-
-export interface WeatherFileContentResponse {
-  status?: string
-  filename?: string
-  data?: WeatherFileContent
-}

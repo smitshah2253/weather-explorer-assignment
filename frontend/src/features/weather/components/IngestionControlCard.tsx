@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -17,12 +17,13 @@ import {
   formatDateISO,
   addDays,
   getMinDate,
-  getMaxDate,
 } from '@/utils/formatters'
 import { MAX_DATE_RANGE_DAYS, MIN_HISTORICAL_YEAR } from '@/constants/weather'
 import { weatherFormSchema, type WeatherFormValues } from '../schemas/weatherSchema'
 import type { WeatherFileContent } from '@/types/weather'
 import toast from 'react-hot-toast'
+
+const MIN_HISTORICAL_DATE = `${MIN_HISTORICAL_YEAR}-01-01`
 
 interface IngestionControlCardProps {
   latitude: number
@@ -50,13 +51,12 @@ export function IngestionControlCard({
   const [isCopied, setIsCopied] = useState(false)
   const today = formatDateISO(new Date())
 
-  // Initialize React Hook Form with Zod schema
+  // Initialize React Hook Form with Zod schema as the single source of truth
   const {
-    register,
-    handleSubmit,
     setValue,
+    handleSubmit,
     watch,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<WeatherFormValues>({
     resolver: zodResolver(weatherFormSchema),
     defaultValues: {
@@ -68,7 +68,7 @@ export function IngestionControlCard({
     mode: 'onChange',
   })
 
-  // Synchronize form values when parent props change
+  // Synchronize form values when parent props change (map click, file select)
   useEffect(() => {
     setValue('latitude', latitude, { shouldValidate: true })
     setValue('longitude', longitude, { shouldValidate: true })
@@ -81,41 +81,24 @@ export function IngestionControlCard({
 
   const formStartDate = watch('startDate') || startDate
   const formEndDate = watch('endDate') || endDate
-
-  // Max allowable end date from current start date (strictly <= 31 days range)
-  const maxAllowedEndDate = formStartDate
-    ? getMinDate(addDays(formStartDate, MAX_DATE_RANGE_DAYS - 1), today)
-    : today
-
-  // Min allowable start date from current end date
-  const minAllowedStartDate = formEndDate
-    ? getMaxDate(`${MIN_HISTORICAL_YEAR}-01-01`, addDays(formEndDate, -(MAX_DATE_RANGE_DAYS - 1)))
-    : `${MIN_HISTORICAL_YEAR}-01-01`
-
   const daysDiff = getDaysDifference(formStartDate, formEndDate)
-  const isEndBeforeStart = formStartDate && formEndDate && new Date(formEndDate) < new Date(formStartDate)
-  const isEndInFuture = formEndDate && formEndDate > today
-  const isRangeTooLong = daysDiff > MAX_DATE_RANGE_DAYS
-  const isDateValid =
-    !!formStartDate &&
-    !!formEndDate &&
-    !isEndBeforeStart &&
-    !isEndInFuture &&
-    !isRangeTooLong &&
-    daysDiff > 0 &&
-    !errors.startDate &&
-    !errors.endDate
 
-  const handleStartDateChange = (newStart: string) => {
-    if (!newStart) {
-      onDateChange(newStart, formEndDate)
-      return
-    }
+  /**
+   * Handle start date change:
+   * - Allow ANY historical date (no lower bound clamping to endDate - 30 days)
+   * - Only auto-adjust end date if resulting range exceeds MAX_DATE_RANGE_DAYS
+   */
+  const handleStartDateChange = useCallback((newStart: string) => {
+    if (!newStart) return
 
     let adjustedEnd = formEndDate
+
+    // If new start is after current end, push end forward
     if (newStart > formEndDate) {
       adjustedEnd = getMinDate(addDays(newStart, 14), today)
     }
+
+    // If range exceeds max, clamp end date
     const diff = getDaysDifference(newStart, adjustedEnd)
     if (diff > MAX_DATE_RANGE_DAYS) {
       adjustedEnd = getMinDate(addDays(newStart, MAX_DATE_RANGE_DAYS - 1), today)
@@ -124,30 +107,39 @@ export function IngestionControlCard({
     setValue('startDate', newStart, { shouldValidate: true })
     setValue('endDate', adjustedEnd, { shouldValidate: true })
     onDateChange(newStart, adjustedEnd)
-  }
+  }, [formEndDate, today, setValue, onDateChange])
 
-  const handleEndDateChange = (newEnd: string) => {
-    if (!newEnd) {
-      onDateChange(formStartDate, newEnd)
-      return
-    }
+  /**
+   * Handle end date change:
+   * - Allow ANY historical end date
+   * - Only auto-adjust start date if resulting range exceeds MAX_DATE_RANGE_DAYS
+   */
+  const handleEndDateChange = useCallback((newEnd: string) => {
+    if (!newEnd) return
 
     let adjustedStart = formStartDate
+
+    // If new end is before current start, push start backward
     if (newEnd < formStartDate) {
-      adjustedStart = getMaxDate(`${MIN_HISTORICAL_YEAR}-01-01`, addDays(newEnd, -14))
+      adjustedStart = addDays(newEnd, -14)
+      if (adjustedStart < MIN_HISTORICAL_DATE) {
+        adjustedStart = MIN_HISTORICAL_DATE
+      }
     }
+
+    // If range exceeds max, clamp start date
     const diff = getDaysDifference(adjustedStart, newEnd)
     if (diff > MAX_DATE_RANGE_DAYS) {
-      adjustedStart = getMaxDate(
-        `${MIN_HISTORICAL_YEAR}-01-01`,
-        addDays(newEnd, -(MAX_DATE_RANGE_DAYS - 1))
-      )
+      adjustedStart = addDays(newEnd, -(MAX_DATE_RANGE_DAYS - 1))
+      if (adjustedStart < MIN_HISTORICAL_DATE) {
+        adjustedStart = MIN_HISTORICAL_DATE
+      }
     }
 
     setValue('startDate', adjustedStart, { shouldValidate: true })
     setValue('endDate', newEnd, { shouldValidate: true })
     onDateChange(adjustedStart, newEnd)
-  }
+  }, [formStartDate, setValue, onDateChange])
 
   const handleQuickPreset = (presetType: '7d' | '14d' | '30d' | '1y') => {
     const end = new Date()
@@ -209,6 +201,9 @@ export function IngestionControlCard({
     }
   }
 
+  // Use Zod isValid as the single source of truth for form validity
+  const canSubmit = isValid && daysDiff > 0
+
   return (
     <form
       onSubmit={handleSubmit(onFormSubmit)}
@@ -228,47 +223,45 @@ export function IngestionControlCard({
         </div>
 
         <Badge
-          variant={isDateValid ? 'secondary' : 'destructive'}
+          variant={canSubmit ? 'secondary' : 'destructive'}
           className="text-[10px] sm:text-[11px] py-0.5 px-2 font-mono tabular-nums shrink-0"
         >
-          {isDateValid ? `${daysDiff} of ${MAX_DATE_RANGE_DAYS} Days` : 'Invalid'}
+          {canSubmit ? `${daysDiff} of ${MAX_DATE_RANGE_DAYS} Days` : 'Invalid'}
         </Badge>
       </div>
 
-      {/* Hidden form inputs for coordinates */}
-      <input type="hidden" {...register('latitude', { valueAsNumber: true })} />
-      <input type="hidden" {...register('longitude', { valueAsNumber: true })} />
-
-      {/* Date Inputs with strict selection clamping */}
+      {/* Date Inputs — min/max prevent future dates but allow ANY historical date */}
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-2.5 sm:gap-3">
         <div>
           <Input
             label="Start Date"
             type="date"
-            min={minAllowedStartDate}
-            max={getMinDate(formEndDate, today)}
+            min={MIN_HISTORICAL_DATE}
+            max={today}
             value={formStartDate}
             onChange={(e) => handleStartDateChange(e.target.value)}
             className="h-9 sm:h-8 text-xs font-mono bg-background/80"
             aria-label="Start date"
+            aria-invalid={!!errors.startDate}
           />
           {errors.startDate && (
-            <p className="text-[10px] text-destructive mt-1">{errors.startDate.message}</p>
+            <p className="text-[10px] text-destructive mt-1" role="alert">{errors.startDate.message}</p>
           )}
         </div>
         <div>
           <Input
             label="End Date"
             type="date"
-            min={formStartDate || `${MIN_HISTORICAL_YEAR}-01-01`}
-            max={maxAllowedEndDate}
+            min={MIN_HISTORICAL_DATE}
+            max={today}
             value={formEndDate}
             onChange={(e) => handleEndDateChange(e.target.value)}
             className="h-9 sm:h-8 text-xs font-mono bg-background/80"
             aria-label="End date"
+            aria-invalid={!!errors.endDate}
           />
           {errors.endDate && (
-            <p className="text-[10px] text-destructive mt-1">{errors.endDate.message}</p>
+            <p className="text-[10px] text-destructive mt-1" role="alert">{errors.endDate.message}</p>
           )}
         </div>
       </div>
@@ -299,7 +292,7 @@ export function IngestionControlCard({
         <Button
           type="submit"
           className="w-full h-11 sm:h-9.5 text-xs sm:text-xs font-semibold shadow-xs"
-          disabled={!isDateValid || isIngesting}
+          disabled={!canSubmit || isIngesting}
           leftIcon={
             isIngesting ? (
               <Loader2 className="h-4 w-4 sm:h-3.5 sm:w-3.5 animate-spin" />

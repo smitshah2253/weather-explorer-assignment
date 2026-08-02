@@ -14,8 +14,11 @@ export function useWeatherFiles() {
   const files: WeatherFileMetadata[] = query.data?.files ?? []
 
   return {
-    ...query,
     files,
     totalCount: files.length,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
   }
 }
