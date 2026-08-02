@@ -23,6 +23,7 @@ import {
   getWeatherConditionText,
 } from '../data/mockData'
 import { DEFAULT_COORDINATES, MAX_DATE_RANGE_DAYS } from '@/constants/weather'
+import { normalizeCoordinates } from '@/utils/coordinateValidation'
 import { getDaysDifference, formatDateISO, formatDisplayDate } from '@/utils/formatters'
 import { getCityFromFilename } from '@/utils/geocoding'
 import { useLocationDetails } from '@/hooks/useLocationDetails'
@@ -123,8 +124,9 @@ export default function ExplorePage() {
   }, [fetchedContent])
 
   const handleLocationChange = (lat: number, lon: number) => {
-    setLatitude(lat)
-    setLongitude(lon)
+    const [normLat, normLon] = normalizeCoordinates(lat, lon)
+    setLatitude(normLat)
+    setLongitude(normLon)
     setSelectedFilename(null)
   }
 

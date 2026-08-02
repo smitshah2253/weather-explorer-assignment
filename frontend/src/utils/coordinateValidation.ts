@@ -28,6 +28,34 @@ export const COORDINATE_LIMITS: Record<CoordinateType, CoordinateLimit> = {
 }
 
 /**
+ * Normalizes latitude strictly within [-90, 90] bounds.
+ */
+export function normalizeLatitude(lat: number): number {
+  if (isNaN(lat)) return 0
+  const clamped = Math.max(COORDINATE_LIMITS.latitude.min, Math.min(COORDINATE_LIMITS.latitude.max, lat))
+  return parseFloat(clamped.toFixed(4))
+}
+
+/**
+ * Normalizes longitude into standard [-180, 180] degrees.
+ * Seamlessly resolves Leaflet multi-world continuous horizontal panning unwrapped values (e.g. 293.6079° -> -66.3921°).
+ */
+export function normalizeLongitude(lon: number): number {
+  if (isNaN(lon)) return 0
+  // Standard wrapping algorithm: ((lon + 180) % 360 + 360) % 360 - 180
+  let wrapped = ((((lon + 180) % 360) + 360) % 360) - 180
+  if (wrapped === -180 && lon > 0) wrapped = 180
+  return parseFloat(wrapped.toFixed(4))
+}
+
+/**
+ * Normalizes both latitude and longitude coordinates into valid standard ranges.
+ */
+export function normalizeCoordinates(lat: number, lon: number): [number, number] {
+  return [normalizeLatitude(lat), normalizeLongitude(lon)]
+}
+
+/**
  * Validates whether a candidate string can be typed as a coordinate.
  * Allows intermediate typing states: "", "-", ".", "-."
  * Rejects invalid characters, multiple signs, multiple decimals, extra decimal places (> 6), and out-of-range numbers.
@@ -71,8 +99,8 @@ export function simulateInputValue(
  * Clamps a numeric coordinate to valid geographic bounds and formats to standard precision.
  */
 export function clampCoordinate(val: number, type: CoordinateType): number {
-  const limits = COORDINATE_LIMITS[type]
-  if (isNaN(val)) return 0
-  const clamped = Math.max(limits.min, Math.min(limits.max, val))
-  return parseFloat(clamped.toFixed(4))
+  if (type === 'latitude') {
+    return normalizeLatitude(val)
+  }
+  return normalizeLongitude(val)
 }

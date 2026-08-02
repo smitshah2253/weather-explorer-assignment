@@ -11,6 +11,9 @@ import {
   isValidCoordinateInput,
   simulateInputValue,
   clampCoordinate,
+  normalizeLatitude,
+  normalizeLongitude,
+  normalizeCoordinates,
 } from '@/utils/coordinateValidation'
 import toast from 'react-hot-toast'
 
@@ -41,10 +44,10 @@ interface LocationSelectorProps {
 function MapClickHandler({ onChange }: { onChange: (lat: number, lon: number) => void }) {
   useMapEvents({
     click(e) {
-      onChange(
-        parseFloat(e.latlng.lat.toFixed(4)),
-        parseFloat(e.latlng.lng.toFixed(4))
-      )
+      // Leaflet's wrap() converts repeated world tile longitudes (e.g. 293.6° -> -66.4°) into standard [-180, 180]
+      const wrapped = e.latlng.wrap()
+      const [lat, lon] = normalizeCoordinates(wrapped.lat, wrapped.lng)
+      onChange(lat, lon)
     },
   })
   return null
@@ -53,7 +56,9 @@ function MapClickHandler({ onChange }: { onChange: (lat: number, lon: number) =>
 function MapCenterController({ lat, lon }: { lat: number; lon: number }) {
   const map = useMap()
   useEffect(() => {
-    map.flyTo([lat, lon], map.getZoom(), { duration: 0.6 })
+    const normLat = normalizeLatitude(lat)
+    const normLon = normalizeLongitude(lon)
+    map.flyTo([normLat, normLon], map.getZoom(), { duration: 0.6 })
     map.invalidateSize()
   }, [lat, lon, map])
   return null
@@ -264,14 +269,9 @@ export function LocationSelector({
       {/* Synchronized Latitude & Longitude Numeric Inputs with Strict Validations */}
       <div className="grid grid-cols-2 gap-2 shrink-0">
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-[10px] font-semibold text-muted-foreground">
-              Latitude (°N/S)
-            </label>
-            <span className="text-[9px] font-mono font-medium text-muted-foreground/80 bg-muted/50 px-1 py-0.5 rounded">
-              [-90°, +90°]
-            </span>
-          </div>
+          <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
+            Latitude (°N/S)
+          </label>
           <div className="relative">
             <input
               type="text"
@@ -283,21 +283,16 @@ export function LocationSelector({
               onBlur={handleLatBlur}
               className="w-full h-8 px-2.5 rounded-md border border-border/60 bg-background/90 text-xs font-mono tabular-nums text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1.5 focus:ring-primary focus:border-primary transition-all"
               placeholder={COORDINATE_LIMITS.latitude.placeholder}
-              aria-label="Latitude coordinate (-90 to 90)"
+              aria-label="Latitude coordinate"
               spellCheck={false}
               autoComplete="off"
             />
           </div>
         </div>
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-[10px] font-semibold text-muted-foreground">
-              Longitude (°E/W)
-            </label>
-            <span className="text-[9px] font-mono font-medium text-muted-foreground/80 bg-muted/50 px-1 py-0.5 rounded">
-              [-180°, +180°]
-            </span>
-          </div>
+          <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
+            Longitude (°E/W)
+          </label>
           <div className="relative">
             <input
               type="text"
@@ -309,7 +304,7 @@ export function LocationSelector({
               onBlur={handleLonBlur}
               className="w-full h-8 px-2.5 rounded-md border border-border/60 bg-background/90 text-xs font-mono tabular-nums text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1.5 focus:ring-primary focus:border-primary transition-all"
               placeholder={COORDINATE_LIMITS.longitude.placeholder}
-              aria-label="Longitude coordinate (-180 to 180)"
+              aria-label="Longitude coordinate"
               spellCheck={false}
               autoComplete="off"
             />
@@ -320,8 +315,15 @@ export function LocationSelector({
       {/* Map */}
       <div className="relative w-full h-[180px] sm:h-[220px] lg:h-auto lg:flex-1 rounded-xl overflow-hidden border border-border/60 bg-muted/20 shrink-0 lg:shrink" role="application" aria-label="Interactive location map">
         <MapContainer
-          center={[latitude, longitude]}
+          center={[normalizeLatitude(latitude), normalizeLongitude(longitude)]}
           zoom={4}
+          minZoom={2}
+          maxBounds={[
+            [-90, -180],
+            [90, 180],
+          ]}
+          maxBoundsViscosity={0.7}
+          worldCopyJump={true}
           scrollWheelZoom={true}
           className="h-full w-full z-0"
           style={{ height: '100%', width: '100%', minHeight: '100%' }}
@@ -330,7 +332,10 @@ export function LocationSelector({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <Marker position={[latitude, longitude]} icon={customMarkerIcon} />
+          <Marker
+            position={[normalizeLatitude(latitude), normalizeLongitude(longitude)]}
+            icon={customMarkerIcon}
+          />
           <MapClickHandler onChange={onChange} />
           <MapCenterController lat={latitude} lon={longitude} />
           <MapInvalidator />
