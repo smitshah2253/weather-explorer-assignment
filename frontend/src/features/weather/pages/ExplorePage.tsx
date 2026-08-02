@@ -24,7 +24,8 @@ import {
 } from '../data/mockData'
 import { DEFAULT_COORDINATES, MAX_DATE_RANGE_DAYS } from '@/constants/weather'
 import { getDaysDifference, formatDateISO, formatDisplayDate } from '@/utils/formatters'
-import { getNearestCity, getCityFromFilename } from '@/utils/geocoding'
+import { getCityFromFilename } from '@/utils/geocoding'
+import { useLocationDetails } from '@/hooks/useLocationDetails'
 import { useWeatherFiles } from '@/hooks/useWeatherFiles'
 import { useWeatherFileContent } from '@/hooks/useWeatherFileContent'
 import { useSmartFetchStore } from '@/hooks/useSmartFetchStore'
@@ -39,9 +40,7 @@ const fadeUp = {
 export default function ExplorePage() {
   const [latitude, setLatitude] = useState<number>(DEFAULT_COORDINATES.latitude)
   const [longitude, setLongitude] = useState<number>(DEFAULT_COORDINATES.longitude)
-  const [cityName, setCityName] = useState<string>(() =>
-    getNearestCity(DEFAULT_COORDINATES.latitude, DEFAULT_COORDINATES.longitude)
-  )
+  const location = useLocationDetails(latitude, longitude)
 
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date()
@@ -108,11 +107,6 @@ export default function ExplorePage() {
       },
     }
   )
-
-  // Update city name instantaneously offline with zero network requests
-  useEffect(() => {
-    setCityName(getNearestCity(latitude, longitude))
-  }, [latitude, longitude])
 
   // Strict date validation
   const daysDiff = getDaysDifference(startDate, endDate)
@@ -239,7 +233,12 @@ export default function ExplorePage() {
               <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                 <div className="flex items-center gap-1 font-semibold text-primary">
                   <MapPin className="h-3.5 w-3.5 stroke-[2.5] shrink-0" />
-                  <span className="truncate text-foreground text-sm font-semibold">{cityName}</span>
+                  <span
+                    className={`truncate text-foreground text-sm font-semibold ${!location.isResolved ? 'text-muted-foreground animate-pulse' : ''}`}
+                    aria-label={`Location: ${location.fullName}`}
+                  >
+                    {location.fullName}
+                  </span>
                 </div>
                 <span aria-hidden="true" className="text-muted-foreground/50">·</span>
                 <div className="flex items-center gap-1 font-mono text-[10px] sm:text-[11px] text-muted-foreground">

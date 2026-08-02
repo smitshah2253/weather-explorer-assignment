@@ -1,4 +1,9 @@
 import { parseWeatherFilename } from '@/features/weather/data/mockData'
+import { PRESET_LOCATIONS } from '@/constants/weather'
+
+const PRESET_MATCH_TOLERANCE = 0.01
+const PENDING_LOCATION_LABEL = 'Finding location…'
+const UNKNOWN_LOCATION_LABEL = 'Custom location'
 
 export interface LocationDetails {
   city: string
@@ -47,18 +52,74 @@ function getCacheKey(lat: number, lon: number): string {
   return `${lat.toFixed(2)}_${lon.toFixed(2)}`
 }
 
+function findMatchingPresetLocation(latitude: number, longitude: number) {
+  return PRESET_LOCATIONS.find(
+    (preset) =>
+      Math.abs(preset.latitude - latitude) < PRESET_MATCH_TOLERANCE &&
+      Math.abs(preset.longitude - longitude) < PRESET_MATCH_TOLERANCE
+  )
+}
+
+function buildLocationDetails(
+  latitude: number,
+  longitude: number,
+  city: string,
+  country: string,
+  isResolved: boolean
+): LocationDetails {
+  const coordinates = formatCoordinates(latitude, longitude)
+  const fullName = country ? `${city}, ${country}` : city
+
+  return {
+    city,
+    country,
+    fullName,
+    coordinates,
+    isResolved,
+  }
+}
+
+function extractLocalityFromResponse(data: Record<string, unknown>): string | null {
+  const city = typeof data.city === 'string' ? data.city : null
+  const locality = typeof data.locality === 'string' ? data.locality : null
+  const subdivision =
+    typeof data.principalSubdivision === 'string' ? data.principalSubdivision : null
+
+  const localityInfo = data.localityInfo as
+    | {
+        locality?: Array<{ name?: string }>
+        administrative?: Array<{ name?: string }>
+      }
+    | undefined
+
+  const namedLocality = localityInfo?.locality?.find((entry) => entry.name)?.name
+  const namedAdmin =
+    localityInfo?.administrative?.[2]?.name ?? localityInfo?.administrative?.[1]?.name
+
+  return city || locality || namedLocality || subdivision || namedAdmin || null
+}
+
+function isCoordinateLabel(value: string): boolean {
+  return /^\d+\.\d+°\s*[NS],\s*\d+\.\d+°\s*[EW]$/.test(value.trim())
+}
+
 function readFromCache(key: string): { city: string; country: string } | null {
   if (memoryCache.has(key)) {
-    return memoryCache.get(key)!
+    const cached = memoryCache.get(key)!
+    if (!isCoordinateLabel(cached.city)) {
+      return cached
+    }
+    memoryCache.delete(key)
   }
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + key)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (parsed && typeof parsed.city === 'string') {
+      if (parsed && typeof parsed.city === 'string' && !isCoordinateLabel(parsed.city)) {
         memoryCache.set(key, parsed)
         return parsed
       }
+      localStorage.removeItem(STORAGE_PREFIX + key)
     }
   } catch {
     // LocalStorage unavailable
@@ -82,7 +143,6 @@ function writeToCache(key: string, data: { city: string; country: string }) {
  * and automatically kicks off a background resolution.
  */
 export function getLocationDetails(latitude: number, longitude: number): LocationDetails {
-  const coordsFormatted = formatCoordinates(latitude, longitude)
   if (isNaN(latitude) || isNaN(longitude)) {
     return {
       city: 'Unknown Location',
@@ -93,30 +153,23 @@ export function getLocationDetails(latitude: number, longitude: number): Locatio
     }
   }
 
+  const preset = findMatchingPresetLocation(latitude, longitude)
+  if (preset) {
+    const [city, country = ''] = preset.name.split(',').map((part) => part.trim())
+    return buildLocationDetails(latitude, longitude, city, country, true)
+  }
+
   const key = getCacheKey(latitude, longitude)
   const cached = readFromCache(key)
 
   if (cached) {
-    const fullName = cached.country ? `${cached.city}, ${cached.country}` : cached.city
-    return {
-      city: cached.city,
-      country: cached.country,
-      fullName,
-      coordinates: coordsFormatted,
-      isResolved: true,
-    }
+    return buildLocationDetails(latitude, longitude, cached.city, cached.country, true)
   }
 
   // Trigger background fetch if not already in flight
   resolveLocationAsync(latitude, longitude).catch(() => {})
 
-  return {
-    city: coordsFormatted,
-    country: '',
-    fullName: coordsFormatted,
-    coordinates: coordsFormatted,
-    isResolved: false,
-  }
+  return buildLocationDetails(latitude, longitude, PENDING_LOCATION_LABEL, '', false)
 }
 
 /**
@@ -127,19 +180,17 @@ export async function resolveLocationAsync(
   latitude: number,
   longitude: number
 ): Promise<LocationDetails> {
-  const coordsFormatted = formatCoordinates(latitude, longitude)
   const key = getCacheKey(latitude, longitude)
   const cached = readFromCache(key)
 
+  const preset = findMatchingPresetLocation(latitude, longitude)
+  if (preset) {
+    const [city, country = ''] = preset.name.split(',').map((part) => part.trim())
+    return buildLocationDetails(latitude, longitude, city, country, true)
+  }
+
   if (cached) {
-    const fullName = cached.country ? `${cached.city}, ${cached.country}` : cached.city
-    return {
-      city: cached.city,
-      country: cached.country,
-      fullName,
-      coordinates: coordsFormatted,
-      isResolved: true,
-    }
+    return buildLocationDetails(latitude, longitude, cached.city, cached.country, true)
   }
 
   if (inFlightRequests.has(key)) {
@@ -159,40 +210,25 @@ export async function resolveLocationAsync(
 
       if (res.ok) {
         const data = await res.json()
-        const city =
-          data.city ||
-          data.locality ||
-          data.principalSubdivision ||
-          data.localityInfo?.administrative?.[2]?.name ||
-          data.localityInfo?.administrative?.[1]?.name ||
-          coordsFormatted
-        const country = data.countryName || data.countryCode || ''
+        const resolvedCity = extractLocalityFromResponse(data)
+        const city = resolvedCity || UNKNOWN_LOCATION_LABEL
+        const country =
+          (typeof data.countryName === 'string' && data.countryName) ||
+          (typeof data.countryCode === 'string' && data.countryCode) ||
+          ''
 
         const result = { city, country }
         writeToCache(key, result)
 
-        const fullName = country ? `${city}, ${country}` : city
-        return {
-          city,
-          country,
-          fullName,
-          coordinates: coordsFormatted,
-          isResolved: true,
-        }
+        return buildLocationDetails(latitude, longitude, city, country, Boolean(resolvedCity))
       }
     } catch {
-      // Network error or timeout -> fallback to coordinates without crashing
+      // Network error or timeout -> fallback without crashing
     } finally {
       inFlightRequests.delete(key)
     }
 
-    return {
-      city: coordsFormatted,
-      country: '',
-      fullName: coordsFormatted,
-      coordinates: coordsFormatted,
-      isResolved: false,
-    }
+    return buildLocationDetails(latitude, longitude, UNKNOWN_LOCATION_LABEL, '', false)
   })()
 
   inFlightRequests.set(key, fetchPromise)
