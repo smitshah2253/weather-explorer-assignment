@@ -64,26 +64,26 @@ export function JsonModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-150">
-      <div className="glass-panel w-full max-w-3xl rounded-2xl shadow-2xl border border-border flex flex-col max-h-[85vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-150">
+      <div className="glass-panel w-full max-w-3xl rounded-2xl shadow-2xl border border-border flex flex-col max-h-[88vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/80 bg-muted/40">
-          <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between p-3 sm:p-4 border-b border-border/80 bg-muted/40 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
               <Braces className="h-4 w-4 stroke-[2]" />
             </div>
-            <div>
-              <h3 className="text-sm font-semibold tracking-tight text-foreground">
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-semibold tracking-tight text-foreground truncate">
                 Raw Weather JSON Payload
               </h3>
-              <p className="text-xs text-muted-foreground font-mono">
+              <p className="text-[10px] sm:text-xs text-muted-foreground font-mono truncate">
                 {resolvedFilename}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs font-mono py-0.5">
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
+            <Badge variant="secondary" className="text-[10px] sm:text-xs font-mono py-0.5 px-2">
               <Database className="h-3 w-3 mr-1" />
               {formatBytes(byteSize)}
             </Badge>
@@ -99,7 +99,7 @@ export function JsonModal({
                   <Copy className="h-3 w-3 stroke-[2]" />
                 )
               }
-              className="h-8 text-xs font-medium"
+              className="h-8 text-xs font-medium px-2.5"
             >
               {isCopied ? 'Copied' : 'Copy'}
             </Button>
@@ -109,7 +109,7 @@ export function JsonModal({
               size="sm"
               onClick={handleDownload}
               leftIcon={<FileDown className="h-3 w-3 stroke-[2]" />}
-              className="h-8 text-xs font-medium"
+              className="h-8 text-xs font-medium px-2.5"
             >
               Export
             </Button>
@@ -118,7 +118,8 @@ export function JsonModal({
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer shrink-0"
+              aria-label="Close JSON modal"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -126,7 +127,7 @@ export function JsonModal({
         </div>
 
         {/* Code Content */}
-        <div className="flex-1 overflow-auto p-4 bg-muted/20 font-mono text-xs leading-relaxed text-foreground">
+        <div className="flex-1 overflow-auto p-3 sm:p-4 bg-muted/20 font-mono text-xs leading-relaxed text-foreground">
           <pre className="whitespace-pre">{jsonString}</pre>
         </div>
       </div>

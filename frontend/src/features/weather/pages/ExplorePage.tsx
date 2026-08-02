@@ -180,30 +180,30 @@ export default function ExplorePage() {
     <div className="min-h-screen w-full flex flex-col font-sans">
       {/* ── NAV ── */}
       <header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+        <div className="max-w-[1536px] xl:max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs shrink-0"
               aria-hidden="true"
             >
               <CloudSun className="h-4 w-4 stroke-[2.2]" />
             </div>
-            <span className="text-sm font-semibold tracking-tight text-foreground">
+            <span className="text-sm font-semibold tracking-tight text-foreground truncate">
               Weather Explorer
             </span>
           </div>
 
-          <nav className="flex items-center gap-2" aria-label="Actions">
+          <nav className="flex items-center gap-1.5 sm:gap-2 shrink-0" aria-label="Actions">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsJsonModalOpen(true)}
               disabled={!activeWeatherData}
               leftIcon={<Braces className="h-3.5 w-3.5 stroke-[2]" />}
-              className="h-8 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+              className="h-8 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer px-2 sm:px-3"
               aria-label="View raw JSON payload"
             >
-              JSON
+              <span className="hidden xs:inline">JSON</span>
             </Button>
 
             <Button
@@ -211,16 +211,16 @@ export default function ExplorePage() {
               size="sm"
               onClick={() => setIsDrawerOpen(true)}
               leftIcon={<Database className="h-3.5 w-3.5 stroke-[2]" />}
-              className="h-8 text-xs font-medium cursor-pointer"
+              className="h-8 text-xs font-medium cursor-pointer px-2 sm:px-3"
               aria-label={`Open saved files drawer, ${displayFiles.length} files`}
             >
-              Saved
-              <span className="ml-1 tabular-nums px-1.5 py-px rounded-md bg-muted text-muted-foreground font-mono text-[11px]">
+              <span>Saved</span>
+              <span className="ml-1 tabular-nums px-1.5 py-px rounded-md bg-muted text-muted-foreground font-mono text-[10px] sm:text-[11px]">
                 {displayFiles.length}
               </span>
             </Button>
 
-            <div className="hidden sm:flex items-center">
+            <div className="hidden md:flex items-center">
               <StatusBadge />
             </div>
 
@@ -232,11 +232,11 @@ export default function ExplorePage() {
       </header>
 
       {/* ── MAIN ── */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <main className="flex-1 max-w-[1536px] xl:max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6">
         
         {/* ── HERO: Shows City Name Prominently ── */}
         <motion.section
-          className="glass-panel rounded-2xl px-6 py-5 shadow-xs"
+          className="glass-panel rounded-2xl p-4 sm:p-5 lg:p-6 shadow-xs"
           {...fadeUp}
           transition={{ duration: 0.2 }}
         >
@@ -248,13 +248,13 @@ export default function ExplorePage() {
                   <span className="truncate text-foreground text-sm font-semibold">{cityName}</span>
                 </div>
                 <span aria-hidden="true" className="text-muted-foreground/50">·</span>
-                <div className="flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-1 font-mono text-[10px] sm:text-[11px] text-muted-foreground">
                   <Calendar className="h-3 w-3 stroke-[2] shrink-0" />
                   <span>{formatDisplayDate(startDate)} – {formatDisplayDate(endDate)}</span>
                 </div>
               </div>
 
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold tracking-tight text-foreground">
                 Historical Weather Analysis
               </h1>
 
@@ -264,96 +264,105 @@ export default function ExplorePage() {
             </div>
 
             {activeWeatherData && (
-              <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-muted/40 border border-border/60 shrink-0">
+              <div className="flex items-center gap-3 sm:gap-4 p-3 sm:px-4 sm:py-3 rounded-xl bg-muted/40 border border-border/60 shrink-0 self-start sm:self-auto">
                 <div className="min-w-0">
-                  <div className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Condition</div>
-                  <div className="text-sm font-semibold text-foreground truncate">{currentCondition?.label ?? 'Clear'}</div>
-                  <div className="text-[11px] font-mono text-muted-foreground">{heroMinTemp}° – {heroMaxTemp}°C</div>
+                  <div className="text-[9px] sm:text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Condition</div>
+                  <div className="text-xs sm:text-sm font-semibold text-foreground truncate">{currentCondition?.label ?? 'Clear'}</div>
+                  <div className="text-[10px] sm:text-[11px] font-mono text-muted-foreground">{heroMinTemp}° – {heroMaxTemp}°C</div>
                 </div>
-                <div className="h-9 w-px bg-border/60" aria-hidden="true" />
+                <div className="h-8 sm:h-9 w-px bg-border/60" aria-hidden="true" />
                 <div className="text-right tabular-nums">
-                  <div className="text-2xl font-bold font-mono tracking-tighter text-foreground">{heroMaxTemp}°</div>
-                  <div className="text-[10px] text-muted-foreground">High</div>
+                  <div className="text-xl sm:text-2xl font-bold font-mono tracking-tighter text-foreground">{heroMaxTemp}°</div>
+                  <div className="text-[9px] sm:text-[10px] text-muted-foreground">High</div>
                 </div>
               </div>
             )}
           </div>
         </motion.section>
 
-        {/* ── SUMMARY METRICS ── */}
-        <motion.section {...fadeUp} transition={{ duration: 0.2, delay: 0.05 }}>
-          <WeatherSummaryCards
-            weatherData={activeWeatherData}
-            isLoading={isFetchingContent || storeWeatherMutation.isPending}
-          />
-        </motion.section>
-
-        {/* ── MAP (3) + CHART (9) ── */}
-        <motion.section
-          className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
-          {...fadeUp}
-          transition={{ duration: 0.2, delay: 0.1 }}
-        >
-          <div className="lg:col-span-3 h-full">
-            <LocationSelector
-              latitude={latitude}
-              longitude={longitude}
-              onChange={handleLocationChange}
-              onReset={handleResetLocation}
-            />
-          </div>
-
-          <div className="lg:col-span-9 h-full">
-            <TemperatureChart
+        {/* ── RESPONSIVE ADAPTIVE GRID ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+          
+          {/* 1. Summary Cards (Order 3 on mobile, Order 1 on desktop) */}
+          <motion.section
+            className="lg:col-span-12 order-3 lg:order-1 w-full"
+            {...fadeUp}
+            transition={{ duration: 0.2, delay: 0.05 }}
+          >
+            <WeatherSummaryCards
               weatherData={activeWeatherData}
               isLoading={isFetchingContent || storeWeatherMutation.isPending}
             />
-          </div>
-        </motion.section>
+          </motion.section>
 
-        {/* ── FILTERS (3) + INSIGHTS (9) ── */}
-        <motion.section
-          className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch"
-          {...fadeUp}
-          transition={{ duration: 0.2, delay: 0.15 }}
-        >
-          <div className="lg:col-span-3 h-full">
-            <IngestionControlCard
-              latitude={latitude}
-              longitude={longitude}
-              startDate={startDate}
-              endDate={endDate}
-              isIngesting={storeWeatherMutation.isPending}
-              onDateChange={(start, end) => {
-                setStartDate(start)
-                setEndDate(end)
-                setSelectedFilename(null)
-              }}
-              onFetchAndStore={handleFetchAndStore}
-              activeWeatherData={activeWeatherData}
-              activeFilename={selectedFilename}
-            />
-          </div>
+          {/* 2. Controls Column: Map & Date Controls (Order 1 on mobile, Order 2 on desktop) */}
+          <motion.section
+            className="lg:col-span-4 xl:col-span-3.5 order-1 lg:order-2 space-y-4 sm:space-y-6 flex flex-col md:grid md:grid-cols-2 lg:flex lg:flex-col md:gap-4 md:space-y-0 lg:space-y-6 w-full"
+            {...fadeUp}
+            transition={{ duration: 0.2, delay: 0.1 }}
+          >
+            <div className="w-full h-full">
+              <LocationSelector
+                latitude={latitude}
+                longitude={longitude}
+                onChange={handleLocationChange}
+                onReset={handleResetLocation}
+              />
+            </div>
 
-          <div className="lg:col-span-9 h-full">
-            <WeatherInsightsCard
+            <div className="w-full h-full">
+              <IngestionControlCard
+                latitude={latitude}
+                longitude={longitude}
+                startDate={startDate}
+                endDate={endDate}
+                isIngesting={storeWeatherMutation.isPending}
+                onDateChange={(start, end) => {
+                  setStartDate(start)
+                  setEndDate(end)
+                  setSelectedFilename(null)
+                }}
+                onFetchAndStore={handleFetchAndStore}
+                activeWeatherData={activeWeatherData}
+                activeFilename={selectedFilename}
+              />
+            </div>
+          </motion.section>
+
+          {/* 3. Analytics Column: Chart & Insights (Order 4 on mobile, Order 3 on desktop) */}
+          <motion.section
+            className="lg:col-span-8 xl:col-span-8.5 order-4 lg:order-3 space-y-4 sm:space-y-6 flex flex-col w-full"
+            {...fadeUp}
+            transition={{ duration: 0.2, delay: 0.15 }}
+          >
+            <div className="w-full">
+              <TemperatureChart
+                weatherData={activeWeatherData}
+                isLoading={isFetchingContent || storeWeatherMutation.isPending}
+              />
+            </div>
+
+            <div className="w-full">
+              <WeatherInsightsCard
+                weatherData={activeWeatherData}
+                isLoading={isFetchingContent || storeWeatherMutation.isPending}
+              />
+            </div>
+          </motion.section>
+
+          {/* 4. Table Section: Full width (Order 5 on mobile, Order 4 on desktop) */}
+          <motion.section
+            className="lg:col-span-12 order-5 lg:order-4 w-full"
+            {...fadeUp}
+            transition={{ duration: 0.2, delay: 0.2 }}
+          >
+            <WeatherDataTable
               weatherData={activeWeatherData}
               isLoading={isFetchingContent || storeWeatherMutation.isPending}
             />
-          </div>
-        </motion.section>
+          </motion.section>
 
-        {/* ── TABLE ── */}
-        <motion.section
-          className="w-full"
-          {...fadeUp}
-          transition={{ duration: 0.2, delay: 0.2 }}
-        >
-          <WeatherDataTable
-            weatherData={activeWeatherData}
-            isLoading={isFetchingContent || storeWeatherMutation.isPending}
-          />
-        </motion.section>
+        </div>
       </main>
 
       {/* ── FOOTER ── */}

@@ -122,7 +122,7 @@ export function StoredFilesDrawer({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              className="w-screen max-w-md bg-background border-l border-border shadow-2xl flex flex-col"
+              className="w-full sm:w-[440px] max-w-full bg-background border-l border-border shadow-2xl flex flex-col"
             >
               {/* Drawer Header */}
               <div className="p-4 border-b border-border flex items-center justify-between">

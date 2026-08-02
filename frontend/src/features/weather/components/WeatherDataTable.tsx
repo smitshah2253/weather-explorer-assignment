@@ -270,22 +270,22 @@ export function WeatherDataTable({ weatherData, isLoading = false }: WeatherData
   }
 
   return (
-    <div className="glass-panel rounded-2xl p-5 sm:p-6 flex flex-col gap-4 shadow-xs w-full font-sans">
+    <div className="glass-panel rounded-2xl p-3.5 sm:p-5 lg:p-6 flex flex-col gap-3.5 sm:gap-4 shadow-xs w-full font-sans">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400" aria-hidden="true">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true">
             <TableIcon className="h-4 w-4 stroke-[2]" />
           </div>
-          <h3 className="text-sm font-semibold tracking-tight text-foreground">
+          <h3 className="text-sm font-semibold tracking-tight text-foreground truncate">
             Daily Records
           </h3>
-          <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
-            {totalFilteredCount} of {data.length}
+          <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">
+            ({totalFilteredCount} of {data.length})
           </span>
         </div>
 
-        <div className="relative w-44 sm:w-52">
+        <div className="relative w-full sm:w-56 shrink-0">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" aria-hidden="true" />
           <input
             type="text"
@@ -295,15 +295,15 @@ export function WeatherDataTable({ weatherData, isLoading = false }: WeatherData
               setGlobalFilter(e.target.value)
               setPagination((prev) => ({ ...prev, pageIndex: 0 }))
             }}
-            className="w-full h-8 pl-8 pr-3 text-xs rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 font-sans transition-shadow"
+            className="w-full h-8.5 sm:h-8 pl-8 pr-3 text-xs rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 font-sans transition-shadow"
             aria-label="Filter weather records"
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-border/60 bg-card/40 max-h-[340px] overflow-y-auto" role="region" aria-label="Weather data table">
-        <table className="w-full text-left text-xs border-collapse">
+      {/* Table with responsive horizontal scroll */}
+      <div className="overflow-x-auto rounded-xl border border-border/60 bg-card/40 max-h-[360px] overflow-y-auto" role="region" aria-label="Weather data table">
+        <table className="w-full text-left text-xs border-collapse min-w-[580px]">
           <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur-sm">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr
@@ -311,7 +311,7 @@ export function WeatherDataTable({ weatherData, isLoading = false }: WeatherData
                 className="border-b border-border text-muted-foreground uppercase text-[10px] font-semibold tracking-wider"
               >
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="py-2 px-3">
+                  <th key={header.id} className="py-2.5 px-3 whitespace-nowrap">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -337,7 +337,7 @@ export function WeatherDataTable({ weatherData, isLoading = false }: WeatherData
                   className="hover:bg-muted/25 transition-colors duration-100"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="py-2 px-3">
+                    <td key={cell.id} className="py-2 px-3 whitespace-nowrap">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -354,7 +354,7 @@ export function WeatherDataTable({ weatherData, isLoading = false }: WeatherData
       {/* Pagination Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground pt-1">
         {/* Left: Page size dropdown + record count */}
-        <div className="flex items-center gap-2.5 font-mono text-[11px]">
+        <div className="flex items-center gap-2 font-mono text-[11px]">
           <label htmlFor="page-size-select" className="sr-only">Rows per page</label>
           <select
             id="page-size-select"
@@ -371,8 +371,8 @@ export function WeatherDataTable({ weatherData, isLoading = false }: WeatherData
               </option>
             ))}
           </select>
-          <span className="tabular-nums text-muted-foreground">
-            Showing <strong className="text-foreground">{startRecord}–{endRecord}</strong> of {totalFilteredCount}
+          <span className="tabular-nums text-muted-foreground whitespace-nowrap">
+            <strong className="text-foreground">{startRecord}–{endRecord}</strong> of {totalFilteredCount}
           </span>
         </div>
 
@@ -383,30 +383,36 @@ export function WeatherDataTable({ weatherData, isLoading = false }: WeatherData
             size="sm"
             onClick={handlePrevPage}
             disabled={!canPrev}
-            className="h-7 w-7 p-0 cursor-pointer disabled:cursor-not-allowed"
+            className="h-8 w-8 sm:h-7 sm:w-7 p-0 cursor-pointer disabled:cursor-not-allowed shrink-0"
             aria-label="Previous page"
           >
-            <ChevronLeft className="h-3.5 w-3.5" />
+            <ChevronLeft className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </Button>
 
-          {/* Page numbers */}
+          {/* Page numbers: Compact on mobile, full on tablet/desktop */}
           <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => handlePageSelect(i)}
-                className={`h-7 min-w-[28px] px-1.5 rounded-md text-xs font-mono font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring ${
-                  currentPage === i
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'bg-background hover:bg-muted text-foreground/70 border border-border/60 hover:border-border'
-                }`}
-                aria-label={`Page ${i + 1}`}
-                aria-current={currentPage === i ? 'page' : undefined}
-              >
-                {i + 1}
-              </button>
-            ))}
+            {totalPages <= 6 ? (
+              Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handlePageSelect(i)}
+                  className={`h-8 min-w-[32px] sm:h-7 sm:min-w-[28px] px-1.5 rounded-md text-xs font-mono font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring ${
+                    currentPage === i
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'bg-background hover:bg-muted text-foreground/70 border border-border/60 hover:border-border'
+                  }`}
+                  aria-label={`Page ${i + 1}`}
+                  aria-current={currentPage === i ? 'page' : undefined}
+                >
+                  {i + 1}
+                </button>
+              ))
+            ) : (
+              <span className="text-xs font-mono px-2 py-1 bg-muted/40 rounded-md border border-border/60">
+                {currentPage + 1} / {totalPages}
+              </span>
+            )}
           </div>
 
           <Button
@@ -414,10 +420,10 @@ export function WeatherDataTable({ weatherData, isLoading = false }: WeatherData
             size="sm"
             onClick={handleNextPage}
             disabled={!canNext}
-            className="h-7 w-7 p-0 cursor-pointer disabled:cursor-not-allowed"
+            className="h-8 w-8 sm:h-7 sm:w-7 p-0 cursor-pointer disabled:cursor-not-allowed shrink-0"
             aria-label="Next page"
           >
-            <ChevronRight className="h-3.5 w-3.5" />
+            <ChevronRight className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </Button>
         </div>
       </div>

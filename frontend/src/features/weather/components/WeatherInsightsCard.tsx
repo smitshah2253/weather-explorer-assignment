@@ -131,35 +131,35 @@ export function WeatherInsightsCard({ weatherData, isLoading = false }: WeatherI
   ]
 
   return (
-    <div className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-xs h-full font-sans">
+    <div className="glass-panel rounded-2xl p-3.5 sm:p-4 lg:p-5 flex flex-col justify-between gap-3.5 sm:gap-4 shadow-xs w-full h-full font-sans">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-primary/10 text-primary" aria-hidden="true">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0" aria-hidden="true">
             <Sparkles className="h-4 w-4 stroke-[2]" />
           </div>
-          <h3 className="text-sm font-semibold tracking-tight text-foreground">
+          <h3 className="text-sm font-semibold tracking-tight text-foreground truncate">
             Weather Insights
           </h3>
         </div>
 
-        <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
-          {time.length} days
+        <span className="text-[10px] sm:text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">
+          {time.length} days analyzed
         </span>
       </div>
 
       {/* 4 Insight Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         {insights.map((insight) => (
           <div
             key={insight.label}
-            className="p-3 rounded-xl border border-border/50 bg-background/40 hover:bg-muted/30 transition-colors duration-150 flex flex-col justify-between gap-1"
+            className="p-2.5 sm:p-3 rounded-xl border border-border/50 bg-background/40 hover:bg-muted/30 transition-colors duration-150 flex flex-col justify-between gap-1 min-w-0"
           >
-            <div className={`flex items-center gap-1.5 text-[11px] font-medium ${insight.color}`}>
-              <insight.icon className="h-3.5 w-3.5 stroke-[2]" aria-hidden="true" />
-              {insight.label}
+            <div className={`flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium ${insight.color} truncate`}>
+              <insight.icon className="h-3.5 w-3.5 stroke-[2] shrink-0" aria-hidden="true" />
+              <span className="truncate">{insight.label}</span>
             </div>
-            <div className="text-base font-bold font-mono text-foreground tabular-nums">
+            <div className="text-sm sm:text-base font-bold font-mono text-foreground tabular-nums truncate">
               {insight.value}
             </div>
             <div className="text-[10px] text-muted-foreground font-mono truncate">
@@ -170,10 +170,10 @@ export function WeatherInsightsCard({ weatherData, isLoading = false }: WeatherI
       </div>
 
       {/* Wind Footer */}
-      <div className="flex items-center justify-between text-[11px] px-3 py-2 rounded-lg bg-muted/30 border border-border/40 text-muted-foreground font-mono">
-        <span className="inline-flex items-center gap-1.5">
-          <Wind className="h-3 w-3 text-teal-500 stroke-[2]" aria-hidden="true" />
-          Peak wind: <strong className="text-foreground">{maxWind.toFixed(1)} km/h</strong> on {formatDisplayDate(time[maxWindIdx])}
+      <div className="flex items-center justify-between text-[10px] sm:text-[11px] px-3 py-2 rounded-lg bg-muted/30 border border-border/40 text-muted-foreground font-mono truncate">
+        <span className="inline-flex items-center gap-1.5 truncate">
+          <Wind className="h-3.5 w-3.5 text-teal-500 stroke-[2] shrink-0" aria-hidden="true" />
+          <span className="truncate">Peak wind: <strong className="text-foreground">{maxWind.toFixed(1)} km/h</strong> on {formatDisplayDate(time[maxWindIdx])}</span>
         </span>
       </div>
     </div>

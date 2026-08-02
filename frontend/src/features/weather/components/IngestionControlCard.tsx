@@ -212,16 +212,16 @@ export function IngestionControlCard({
   return (
     <form
       onSubmit={handleSubmit(onFormSubmit)}
-      className="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-xs h-full font-sans"
+      className="glass-panel rounded-2xl p-3.5 sm:p-4 lg:p-5 flex flex-col justify-between gap-4 shadow-xs w-full h-full font-sans"
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400" aria-hidden="true">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 shrink-0" aria-hidden="true">
             <CalendarDays className="h-4 w-4 stroke-[2]" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold tracking-tight text-foreground">
+            <h3 className="text-sm font-semibold tracking-tight text-foreground truncate">
               Date Range
             </h3>
           </div>
@@ -229,7 +229,7 @@ export function IngestionControlCard({
 
         <Badge
           variant={isDateValid ? 'secondary' : 'destructive'}
-          className="text-[11px] py-0.5 px-2 font-mono tabular-nums"
+          className="text-[10px] sm:text-[11px] py-0.5 px-2 font-mono tabular-nums shrink-0"
         >
           {isDateValid ? `${daysDiff} of ${MAX_DATE_RANGE_DAYS} Days` : 'Invalid'}
         </Badge>
@@ -240,7 +240,7 @@ export function IngestionControlCard({
       <input type="hidden" {...register('longitude', { valueAsNumber: true })} />
 
       {/* Date Inputs with strict selection clamping */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-2.5 sm:gap-3">
         <div>
           <Input
             label="Start Date"
@@ -249,7 +249,7 @@ export function IngestionControlCard({
             max={getMinDate(formEndDate, today)}
             value={formStartDate}
             onChange={(e) => handleStartDateChange(e.target.value)}
-            className="h-8 text-xs font-mono bg-background/80"
+            className="h-9 sm:h-8 text-xs font-mono bg-background/80"
             aria-label="Start date"
           />
           {errors.startDate && (
@@ -264,7 +264,7 @@ export function IngestionControlCard({
             max={maxAllowedEndDate}
             value={formEndDate}
             onChange={(e) => handleEndDateChange(e.target.value)}
-            className="h-8 text-xs font-mono bg-background/80"
+            className="h-9 sm:h-8 text-xs font-mono bg-background/80"
             aria-label="End date"
           />
           {errors.endDate && (
@@ -274,7 +274,7 @@ export function IngestionControlCard({
       </div>
 
       {/* Quick Presets */}
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none" role="toolbar" aria-label="Date range presets">
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 -mx-1 px-1" role="toolbar" aria-label="Date range presets">
         <span className="text-[11px] text-muted-foreground font-medium shrink-0 mr-0.5">Presets:</span>
         {[
           { label: '7d', type: '7d' as const },
@@ -286,7 +286,7 @@ export function IngestionControlCard({
             key={label}
             type="button"
             onClick={() => handleQuickPreset(type)}
-            className="text-[11px] px-2 py-1 rounded-md bg-background hover:bg-muted text-foreground/70 border border-border/60 font-medium cursor-pointer transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="text-[11px] px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-md bg-background hover:bg-muted text-foreground/70 border border-border/60 font-medium cursor-pointer transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-ring min-h-[32px] sm:min-h-[26px] flex items-center"
             aria-label={`Set date range to ${label}`}
           >
             {label}
@@ -295,16 +295,16 @@ export function IngestionControlCard({
       </div>
 
       {/* Actions */}
-      <div className="space-y-2 pt-3 border-t border-border/60">
+      <div className="space-y-2.5 pt-3 border-t border-border/60">
         <Button
           type="submit"
-          className="w-full h-9 text-xs font-semibold shadow-xs"
+          className="w-full h-11 sm:h-9.5 text-xs sm:text-xs font-semibold shadow-xs"
           disabled={!isDateValid || isIngesting}
           leftIcon={
             isIngesting ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-4 w-4 sm:h-3.5 sm:w-3.5 animate-spin" />
             ) : (
-              <Database className="h-3.5 w-3.5 stroke-[2]" />
+              <Database className="h-4 w-4 sm:h-3.5 sm:w-3.5 stroke-[2]" />
             )
           }
           aria-label={isIngesting ? 'Saving data...' : 'Fetch and store weather data'}
@@ -319,8 +319,8 @@ export function IngestionControlCard({
             size="sm"
             onClick={handleExportDataset}
             disabled={!activeWeatherData}
-            leftIcon={<FileDown className="h-3 w-3 stroke-[2]" />}
-            className="flex-1 h-7.5 text-[11px] font-medium"
+            leftIcon={<FileDown className="h-3.5 w-3.5 sm:h-3 sm:w-3 stroke-[2]" />}
+            className="flex-1 h-9 sm:h-8 text-[11px] sm:text-xs font-medium"
             aria-label="Export dataset as JSON file"
           >
             Export JSON
@@ -334,12 +334,12 @@ export function IngestionControlCard({
             disabled={!activeWeatherData}
             leftIcon={
               isCopied ? (
-                <Check className="h-3 w-3 stroke-[2.5] text-emerald-500" />
+                <Check className="h-3.5 w-3.5 sm:h-3 sm:w-3 stroke-[2.5] text-emerald-500" />
               ) : (
-                <Copy className="h-3 w-3 stroke-[2]" />
+                <Copy className="h-3.5 w-3.5 sm:h-3 sm:w-3 stroke-[2]" />
               )
             }
-            className="flex-1 h-7.5 text-[11px] font-medium"
+            className="flex-1 h-9 sm:h-8 text-[11px] sm:text-xs font-medium"
             aria-label={isCopied ? 'Copied to clipboard' : 'Copy JSON to clipboard'}
           >
             {isCopied ? 'Copied' : 'Copy'}

@@ -73,25 +73,24 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
 
   if (isLoading) {
     return (
-      <div className="glass-panel rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xs h-[480px] w-full font-sans">
-        <div className="flex items-center justify-between pb-3 border-b border-border/60">
+      <div className="glass-panel rounded-2xl p-3.5 sm:p-5 lg:p-6 flex flex-col justify-between shadow-xs h-[320px] sm:h-[380px] lg:h-[460px] xl:h-[480px] w-full font-sans">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-border/60">
           <div className="flex items-center gap-2">
-            <Skeleton className="h-7 w-7 rounded-lg" />
-            <Skeleton className="h-4 w-44" />
+            <Skeleton className="h-7 w-7 rounded-lg shrink-0" />
+            <Skeleton className="h-4 w-36 sm:w-44" />
           </div>
           <div className="flex items-center gap-2">
-            <Skeleton className="h-7 w-28 rounded-lg" />
-            <Skeleton className="h-7 w-16 rounded-lg" />
+            <Skeleton className="h-7 w-24 sm:w-28 rounded-lg" />
+            <Skeleton className="h-7 w-14 sm:w-16 rounded-lg" />
           </div>
         </div>
-        <div className="flex-1 w-full pt-6 flex flex-col justify-end gap-3">
-          <Skeleton className="h-[280px] w-full rounded-xl" />
+        <div className="flex-1 w-full pt-4 sm:pt-6 flex flex-col justify-end gap-3">
+          <Skeleton className="h-[200px] sm:h-[260px] lg:h-[280px] w-full rounded-xl" />
           <div className="flex justify-between px-2">
-            <Skeleton className="h-3 w-12" />
-            <Skeleton className="h-3 w-12" />
-            <Skeleton className="h-3 w-12" />
-            <Skeleton className="h-3 w-12" />
-            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-3 w-10 sm:w-12" />
+            <Skeleton className="h-3 w-10 sm:w-12" />
+            <Skeleton className="h-3 w-10 sm:w-12" />
+            <Skeleton className="h-3 w-10 sm:w-12" />
           </div>
         </div>
       </div>
@@ -100,8 +99,8 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
 
   if (!weatherData || !weatherData.daily.time.length) {
     return (
-      <div className="glass-panel rounded-2xl p-6 shadow-xs h-[480px] w-full flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Select a location and date range to see weather data</p>
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 shadow-xs h-[320px] sm:h-[380px] lg:h-[460px] xl:h-[480px] w-full flex items-center justify-center">
+        <p className="text-xs sm:text-sm text-muted-foreground text-center">Select a location and date range to see weather data</p>
       </div>
     )
   }
@@ -138,19 +137,19 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
   ]
 
   return (
-    <div className="glass-panel rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xs h-[480px] w-full font-sans">
+    <div className="glass-panel rounded-2xl p-3.5 sm:p-5 lg:p-6 flex flex-col justify-between shadow-xs h-[320px] sm:h-[380px] lg:h-[460px] xl:h-[480px] w-full font-sans">
       {/* Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/60">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400" aria-hidden="true">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-border/60">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 shrink-0" aria-hidden="true">
             <TrendingUp className="h-4 w-4 stroke-[2]" />
           </div>
-          <h3 className="text-sm font-semibold tracking-tight text-foreground">
-            Temperature & Precipitation
+          <h3 className="text-sm font-semibold tracking-tight text-foreground truncate">
+            Temperature & Rain
           </h3>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
           {/* Series Switcher */}
           <div className="flex items-center rounded-lg border border-border/60 bg-muted/30 p-0.5" role="radiogroup" aria-label="Select data series">
             {viewModes.map((mode) => (
@@ -160,7 +159,7 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
                 role="radio"
                 aria-checked={viewMode === mode.key}
                 onClick={() => setViewMode(mode.key)}
-                className={`px-2 py-1 rounded-md text-[11px] font-medium cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-ring ${
+                className={`px-2 py-1 rounded-md text-[11px] font-medium cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-ring min-h-[28px] sm:min-h-[24px] flex items-center ${
                   viewMode === mode.key
                     ? 'bg-background text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
@@ -174,7 +173,7 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
           <button
             type="button"
             onClick={() => setShowPrecipitation(!showPrecipitation)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring min-h-[28px] sm:min-h-[24px] ${
               showPrecipitation
                 ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25'
                 : 'bg-background hover:bg-muted text-muted-foreground border-border/60'
@@ -195,7 +194,7 @@ export function TemperatureChart({ weatherData, isLoading = false }: Temperature
             size="sm"
             onClick={handleExportCSV}
             leftIcon={<FileDown className="h-3 w-3 stroke-[2]" />}
-            className="h-7 text-[11px] font-medium text-muted-foreground hover:text-foreground px-2"
+            className="h-7.5 sm:h-7 text-[11px] font-medium text-muted-foreground hover:text-foreground px-2"
             aria-label="Export chart data as CSV"
           >
             CSV
