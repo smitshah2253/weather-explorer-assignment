@@ -42,28 +42,26 @@ function MapClickHandler({ onChange }: { onChange: (lat: number, lon: number) =>
   return null
 }
 
-function MapResizer() {
+function MapCenterController({ lat, lon }: { lat: number; lon: number }) {
+  const map = useMap()
+  useEffect(() => {
+    map.flyTo([lat, lon], map.getZoom(), { duration: 0.6 })
+    map.invalidateSize()
+  }, [lat, lon, map])
+  return null
+}
+
+function MapInvalidator() {
   const map = useMap()
   useEffect(() => {
     map.invalidateSize()
     const t1 = setTimeout(() => map.invalidateSize(), 100)
     const t2 = setTimeout(() => map.invalidateSize(), 400)
-    const t3 = setTimeout(() => map.invalidateSize(), 1000)
     return () => {
       clearTimeout(t1)
       clearTimeout(t2)
-      clearTimeout(t3)
     }
   }, [map])
-  return null
-}
-
-function MapCenterController({ lat, lon }: { lat: number; lon: number }) {
-  const map = useMap()
-  useEffect(() => {
-    map.invalidateSize()
-    map.flyTo([lat, lon], map.getZoom(), { duration: 0.6 })
-  }, [lat, lon, map])
   return null
 }
 
@@ -140,22 +138,22 @@ export function LocationSelector({
       </div>
 
       {/* Map */}
-      <div className="relative h-[160px] xs:h-[180px] sm:h-[200px] lg:flex-1 w-full rounded-xl overflow-hidden border border-border/60 bg-muted/20" role="application" aria-label="Interactive location map">
+      <div className="relative w-full h-[180px] sm:h-[220px] lg:h-auto lg:flex-1 rounded-xl overflow-hidden border border-border/60 bg-muted/20 shrink-0 lg:shrink" role="application" aria-label="Interactive location map">
         <MapContainer
           center={[latitude, longitude]}
           zoom={4}
           scrollWheelZoom={true}
           className="h-full w-full z-0"
-          style={{ height: '100%', width: '100%', minHeight: '150px' }}
+          style={{ height: '100%', width: '100%', minHeight: '100%' }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <Marker position={[latitude, longitude]} icon={customMarkerIcon} />
-          <MapResizer />
           <MapClickHandler onChange={onChange} />
           <MapCenterController lat={latitude} lon={longitude} />
+          <MapInvalidator />
         </MapContainer>
       </div>
 
