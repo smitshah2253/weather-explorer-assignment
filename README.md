@@ -194,3 +194,13 @@ npm run lint
 #### Example Stored Filename Format:
 `weather_23_02_72_57_2024-01-01_2024-01-15_20260802T120000Z.json`
 
+<img width="2238" height="1207" alt="image" src="https://github.com/user-attachments/assets/c00aeab5-8808-4062-9561-a83aad7318ef" />
+<img width="2234" height="1399" alt="image" src="https://github.com/user-attachments/assets/4c38d24c-1bc5-473d-a913-d94b69e4f77f" />
+<img width="517" height="1111" alt="image" src="https://github.com/user-attachments/assets/038c731b-398f-468a-9023-32f9242d64d9" />
+<img width="527" height="1110" alt="image" src="https://github.com/user-attachments/assets/8ade0f9c-45b1-47a0-b25a-fdb7c05d928d" />
+<img width="493" height="1077" alt="image" src="https://github.com/user-attachments/assets/26f823aa-7b34-44a6-a3aa-817b0ae694a5" />
+
+
+
+
+
