@@ -50,6 +50,34 @@ export function formatDisplayDate(dateString: string | null | undefined): string
 }
 
 /**
+ * Formats a start and end date string into a user-friendly range including the year (e.g. "Jul 1 – Jul 31, 2026").
+ */
+export function formatDateRange(startDateStr: string | null | undefined, endDateStr: string | null | undefined): string {
+  if (!startDateStr || !endDateStr) return 'N/A'
+  try {
+    const s = new Date(startDateStr)
+    const e = new Date(endDateStr)
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) {
+      return `${startDateStr} – ${endDateStr}`
+    }
+    const sYear = s.getFullYear()
+    const eYear = e.getFullYear()
+    const sMonth = s.toLocaleString('en-US', { month: 'short' })
+    const eMonth = e.toLocaleString('en-US', { month: 'short' })
+    const sDay = s.getDate()
+    const eDay = e.getDate()
+
+    if (sYear === eYear) {
+      return `${sMonth} ${sDay} – ${eMonth} ${eDay}, ${sYear}`
+    }
+    return `${sMonth} ${sDay}, ${sYear} – ${eMonth} ${eDay}, ${eYear}`
+  } catch {
+    return `${startDateStr} – ${endDateStr}`
+  }
+}
+
+
+/**
  * Formats a Date object to YYYY-MM-DD string.
  */
 export function formatDateISO(date: Date): string {

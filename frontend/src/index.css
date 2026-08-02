@@ -163,6 +163,16 @@
   background: rgba(148, 163, 184, 0.4);
   border-radius: 9999px;
 }
+
+/* Hide scrollbar for clean horizontal filter pills */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.7);
 }
