@@ -1,10 +1,18 @@
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { RotateCcw, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { PRESET_LOCATIONS, type PresetLocation } from '@/constants/weather'
+import {
+  type CoordinateType,
+  COORDINATE_LIMITS,
+  isValidCoordinateInput,
+  simulateInputValue,
+  clampCoordinate,
+} from '@/utils/coordinateValidation'
+import toast from 'react-hot-toast'
 
 const customMarkerIcon = L.divIcon({
   className: 'custom-leaflet-marker',
@@ -71,6 +79,164 @@ export function LocationSelector({
   onChange,
   onReset,
 }: LocationSelectorProps) {
+  // Local string state to manage natural user typing without cursor jumping or NaN glitch
+  const [latInput, setLatInput] = useState<string>(latitude.toString())
+  const [lonInput, setLonInput] = useState<string>(longitude.toString())
+
+  // Synchronize local input state whenever parent coordinates change (e.g. map click or preset)
+  useEffect(() => {
+    setLatInput((prev) => (parseFloat(prev) !== latitude ? latitude.toString() : prev))
+  }, [latitude])
+
+  useEffect(() => {
+    setLonInput((prev) => (parseFloat(prev) !== longitude ? longitude.toString() : prev))
+  }, [longitude])
+
+  /**
+   * Block invalid keypresses before they modify the input value
+   */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>, type: CoordinateType) => {
+      // Allow control/navigation keys and shortcut combos
+      if (
+        [
+          'Backspace',
+          'Delete',
+          'ArrowLeft',
+          'ArrowRight',
+          'ArrowUp',
+          'ArrowDown',
+          'Tab',
+          'Home',
+          'End',
+          'Enter',
+          'Escape',
+        ].includes(e.key) ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey
+      ) {
+        return
+      }
+
+      // Block any non-numeric/non-symbol character (like letters, '+', 'e', 'E', spaces)
+      if (!/^[\d.-]$/.test(e.key)) {
+        e.preventDefault()
+        return
+      }
+
+      // Simulate the resulting string after key insertion
+      const input = e.currentTarget
+      const simulated = simulateInputValue(
+        input.value,
+        input.selectionStart,
+        input.selectionEnd,
+        e.key
+      )
+
+      if (!isValidCoordinateInput(simulated, type)) {
+        e.preventDefault()
+      }
+    },
+    []
+  )
+
+  /**
+   * Latitude change handler with strict format and range checks
+   */
+  const handleLatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const candidate = e.target.value
+    if (!isValidCoordinateInput(candidate, 'latitude')) {
+      return
+    }
+
+    setLatInput(candidate)
+
+    // Only broadcast complete valid floating numbers to parent
+    const parsed = parseFloat(candidate)
+    if (
+      !isNaN(parsed) &&
+      candidate !== '-' &&
+      candidate !== '.' &&
+      candidate !== '-.' &&
+      !candidate.endsWith('.')
+    ) {
+      onChange(parsed, longitude)
+    }
+  }
+
+  /**
+   * Longitude change handler with strict format and range checks
+   */
+  const handleLonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const candidate = e.target.value
+    if (!isValidCoordinateInput(candidate, 'longitude')) {
+      return
+    }
+
+    setLonInput(candidate)
+
+    // Only broadcast complete valid floating numbers to parent
+    const parsed = parseFloat(candidate)
+    if (
+      !isNaN(parsed) &&
+      candidate !== '-' &&
+      candidate !== '.' &&
+      candidate !== '-.' &&
+      !candidate.endsWith('.')
+    ) {
+      onChange(latitude, parsed)
+    }
+  }
+
+  /**
+   * Paste handler that rejects out-of-range or malformed pasted text
+   */
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, type: CoordinateType) => {
+    const pastedText = e.clipboardData.getData('text').trim()
+    const input = e.currentTarget
+    const simulated = simulateInputValue(
+      input.value,
+      input.selectionStart,
+      input.selectionEnd,
+      pastedText
+    )
+
+    if (!isValidCoordinateInput(simulated, type)) {
+      e.preventDefault()
+      const limit = COORDINATE_LIMITS[type]
+      toast.error(`Invalid ${limit.label}. Must be between ${limit.rangeText}`)
+    }
+  }
+
+  /**
+   * Latitude blur handler: cleans up incomplete input and ensures valid value
+   */
+  const handleLatBlur = () => {
+    const num = parseFloat(latInput)
+    if (isNaN(num) || latInput === '' || latInput === '-' || latInput === '.' || latInput === '-.') {
+      setLatInput(latitude.toString())
+    } else {
+      const clamped = clampCoordinate(num, 'latitude')
+      setLatInput(clamped.toString())
+      onChange(clamped, longitude)
+    }
+  }
+
+  /**
+   * Longitude blur handler: cleans up incomplete input and ensures valid value
+   */
+  const handleLonBlur = () => {
+    const num = parseFloat(lonInput)
+    if (isNaN(num) || lonInput === '' || lonInput === '-' || lonInput === '.' || lonInput === '-.') {
+      setLonInput(longitude.toString())
+    } else {
+      const clamped = clampCoordinate(num, 'longitude')
+      setLonInput(clamped.toString())
+      onChange(latitude, clamped)
+    }
+  }
+
   return (
     <div className="glass-panel rounded-2xl p-3.5 sm:p-4 lg:p-5 flex flex-col justify-between gap-2.5 sm:gap-3 shadow-xs min-h-[380px] sm:min-h-[420px] lg:h-[480px] w-full font-sans">
       {/* Header */}
@@ -95,45 +261,59 @@ export function LocationSelector({
         </Button>
       </div>
 
-      {/* Synchronized Latitude & Longitude Numeric Inputs (100% Spec Match) */}
+      {/* Synchronized Latitude & Longitude Numeric Inputs with Strict Validations */}
       <div className="grid grid-cols-2 gap-2 shrink-0">
         <div>
-          <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
-            Latitude (°N/S)
-          </label>
-          <input
-            type="number"
-            step="0.0001"
-            min="-90"
-            max="90"
-            value={latitude}
-            onChange={(e) => {
-              const val = parseFloat(e.target.value)
-              if (!isNaN(val)) onChange(val, longitude)
-            }}
-            className="w-full h-8 px-2.5 rounded-md border border-border/60 bg-background/90 text-xs font-mono tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            placeholder="e.g. 23.0225"
-            aria-label="Latitude coordinate"
-          />
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[10px] font-semibold text-muted-foreground">
+              Latitude (°N/S)
+            </label>
+            <span className="text-[9px] font-mono font-medium text-muted-foreground/80 bg-muted/50 px-1 py-0.5 rounded">
+              [-90°, +90°]
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={latInput}
+              onChange={handleLatChange}
+              onKeyDown={(e) => handleKeyDown(e, 'latitude')}
+              onPaste={(e) => handlePaste(e, 'latitude')}
+              onBlur={handleLatBlur}
+              className="w-full h-8 px-2.5 rounded-md border border-border/60 bg-background/90 text-xs font-mono tabular-nums text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1.5 focus:ring-primary focus:border-primary transition-all"
+              placeholder={COORDINATE_LIMITS.latitude.placeholder}
+              aria-label="Latitude coordinate (-90 to 90)"
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </div>
         </div>
         <div>
-          <label className="text-[10px] font-semibold text-muted-foreground block mb-0.5">
-            Longitude (°E/W)
-          </label>
-          <input
-            type="number"
-            step="0.0001"
-            min="-180"
-            max="180"
-            value={longitude}
-            onChange={(e) => {
-              const val = parseFloat(e.target.value)
-              if (!isNaN(val)) onChange(latitude, val)
-            }}
-            className="w-full h-8 px-2.5 rounded-md border border-border/60 bg-background/90 text-xs font-mono tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            placeholder="e.g. 72.5714"
-            aria-label="Longitude coordinate"
-          />
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[10px] font-semibold text-muted-foreground">
+              Longitude (°E/W)
+            </label>
+            <span className="text-[9px] font-mono font-medium text-muted-foreground/80 bg-muted/50 px-1 py-0.5 rounded">
+              [-180°, +180°]
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={lonInput}
+              onChange={handleLonChange}
+              onKeyDown={(e) => handleKeyDown(e, 'longitude')}
+              onPaste={(e) => handlePaste(e, 'longitude')}
+              onBlur={handleLonBlur}
+              className="w-full h-8 px-2.5 rounded-md border border-border/60 bg-background/90 text-xs font-mono tabular-nums text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1.5 focus:ring-primary focus:border-primary transition-all"
+              placeholder={COORDINATE_LIMITS.longitude.placeholder}
+              aria-label="Longitude coordinate (-180 to 180)"
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </div>
         </div>
       </div>
 
@@ -185,3 +365,4 @@ export function LocationSelector({
     </div>
   )
 }
+
