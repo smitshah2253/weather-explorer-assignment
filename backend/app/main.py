@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.BACKEND_CORS_ORIGINS,
+        allow_origin_regex=r"^https:\/\/.*\.vercel\.app$|^https:\/\/.*\.run\.app$|^http:\/\/localhost(:\d+)?$",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -57,6 +58,10 @@ def create_app() -> FastAPI:
 
     # 5. Include API Router
     app.include_router(api_router, prefix=settings.API_V1_STR)
+
+    @app.get("/health", tags=["Health"])
+    async def root_health() -> dict[str, str]:
+        return {"status": "healthy", "environment": settings.ENVIRONMENT}
 
     return app
 
